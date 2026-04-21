@@ -325,6 +325,11 @@ export function ProfileScreen() {
               <Text style={styles.settingsChevron}>›</Text>
             </TouchableOpacity>
             <View style={styles.settingsDivider} />
+            <TouchableOpacity style={styles.settingsRow} onPress={() => navigation.navigate('Leaderboard')}>
+              <Text style={styles.settingsLabel}>🏆  Leaderboard</Text>
+              <Text style={styles.settingsChevron}>›</Text>
+            </TouchableOpacity>
+            <View style={styles.settingsDivider} />
             <TouchableOpacity style={styles.settingsRow} onPress={() => navigation.navigate('Settings')}>
               <Text style={styles.settingsLabel}>⚙️  Settings</Text>
               <Text style={styles.settingsChevron}>›</Text>

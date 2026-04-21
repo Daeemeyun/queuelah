@@ -29,6 +29,7 @@ import { GoProScreen }           from '@screens/GoProScreen';
 import { WriteReviewScreen }     from '@screens/WriteReviewScreen';
 import { AdminScreen }           from '@screens/AdminScreen';
 import { SettingsScreen }        from '@screens/SettingsScreen';
+import { LeaderboardScreen }     from '@screens/LeaderboardScreen';
 import { LoadingSpinner }     from '@components/common/LoadingSpinner';
 
 const Stack = createStackNavigator();
@@ -94,6 +95,7 @@ export default function App() {
           <Stack.Screen name="WriteReview"   component={WriteReviewScreen}    options={{ presentation: 'modal' }} />
           <Stack.Screen name="Admin"         component={AdminScreen} />
           <Stack.Screen name="Settings"      component={SettingsScreen} />
+          <Stack.Screen name="Leaderboard"   component={LeaderboardScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

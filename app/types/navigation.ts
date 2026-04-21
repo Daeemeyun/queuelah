@@ -23,4 +23,5 @@ Settings: undefined;
   Auth: undefined;
   WriteReview: { eateryId: string; eateryName: string; existingRating?: number; existingBody?: string };
   Admin: undefined;
+  Leaderboard: undefined;
 };
