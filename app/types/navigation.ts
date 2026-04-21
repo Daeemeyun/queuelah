@@ -19,8 +19,7 @@ export type MapStackParamList = {
   AddEatery: undefined;
   NewForumPost: undefined;
   GoPro: undefined;
-  Search: undefined;
-  Settings: undefined;
+Settings: undefined;
   Auth: undefined;
   WriteReview: { eateryId: string; eateryName: string; existingRating?: number; existingBody?: string };
   Admin: undefined;
