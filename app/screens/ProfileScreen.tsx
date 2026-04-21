@@ -58,7 +58,7 @@ function usernameColorValue(c: UsernameColor): string {
 export function ProfileScreen() {
   const navigation = useNavigation<any>();
   const { user, isGuest } = useAuth();
-  const { signOut, setUser } = useAuthStore();
+  const { setUser } = useAuthStore();
   const { stats, earnedBadgeKeys, allBadges, newBadges, clearNewBadges, loading } = useProfile(user?.id);
   const { isPro } = usePremium();
 
@@ -90,13 +90,6 @@ export function ProfileScreen() {
       .single();
     if (!error && data) setUser(data);
     setSavingCustom(false);
-  }
-
-  function handleSignOut() {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: signOut },
-    ]);
   }
 
   // ── Guest screen ──────────────────────────────────────────────
@@ -331,6 +324,11 @@ export function ProfileScreen() {
               </Text>
               <Text style={styles.settingsChevron}>›</Text>
             </TouchableOpacity>
+            <View style={styles.settingsDivider} />
+            <TouchableOpacity style={styles.settingsRow} onPress={() => navigation.navigate('Settings')}>
+              <Text style={styles.settingsLabel}>⚙️  Settings</Text>
+              <Text style={styles.settingsChevron}>›</Text>
+            </TouchableOpacity>
             {user?.is_admin && (
               <>
                 <View style={styles.settingsDivider} />
@@ -340,11 +338,6 @@ export function ProfileScreen() {
                 </TouchableOpacity>
               </>
             )}
-            <View style={styles.settingsDivider} />
-            <TouchableOpacity style={styles.settingsRow} onPress={handleSignOut}>
-              <Text style={[styles.settingsLabel, { color: '#FF3B30' }]}>Sign Out</Text>
-              <Text style={styles.settingsChevron}>›</Text>
-            </TouchableOpacity>
           </View>
         </View>
 
