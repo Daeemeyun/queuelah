@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { supabase } from '@lib/supabase';
+import { clearEateriesCache } from '@hooks/useEateries';
 import { Colors } from '@constants/colors';
 import { Eatery, EateryType } from '@types/eatery';
 import { useEateryStore } from '@store/eateryStore';
@@ -123,6 +124,7 @@ function PendingTab() {
       Alert.alert('Error', error.message);
     } else {
       setEateries(prev => prev.filter(e => e.id !== eatery.id));
+      clearEateriesCache();
     }
     setActing(null);
   }
@@ -148,6 +150,7 @@ function PendingTab() {
       Alert.alert('Error', error.message);
     } else {
       setEateries(prev => prev.filter(e => e.id !== eatery.id));
+      clearEateriesCache();
     }
     setActing(null);
   }
@@ -269,6 +272,7 @@ function FeaturedTab() {
     } else {
       // Sync the global eatery store so HomeScreen reflects the change immediately
       updateEatery(eatery.id, { is_featured: next });
+      clearEateriesCache();
 
       // Update local UI state
       const patch = (list: FeaturedEatery[]) =>
