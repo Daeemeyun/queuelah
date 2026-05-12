@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  TextInput, ActivityIndicator,
+  TextInput, ActivityIndicator, ScrollView,
 } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +13,8 @@ import { useLocation } from '@hooks/useLocation';
 import { useAllQueueStatuses } from '@hooks/useAllQueueStatuses';
 import { MapMarker } from '@components/map/MapMarker';
 import { EateryBottomSheet } from '@components/map/EateryBottomSheet';
+import { StatusDot } from '@components/common/StatusDot';
+import { queueLevelLabel, getQueueColor } from '@lib/helpers';
 import { Colors } from '@constants/colors';
 import { Config } from '@constants/config';
 import { Eatery } from '@types/eatery';
@@ -201,23 +203,41 @@ export function MapScreen() {
           </View>
 
           {/* Search results dropdown */}
-          {searchFocused && searchQuery.length > 0 && (
+          {searchQuery.length > 0 && (
             <View style={styles.searchResults}>
               {filteredEateries.length === 0 ? (
                 <Text style={styles.noResults}>No eateries found</Text>
               ) : (
-                filteredEateries.slice(0, 5).map(eatery => (
-                  <TouchableOpacity
-                    key={eatery.id}
-                    style={styles.searchResultRow}
-                    onPress={() => flyToEatery(eatery)}
-                  >
-                    <Text style={styles.searchResultName}>{eatery.name}</Text>
-                    <Text style={styles.searchResultType}>
-                      {eatery.type.replace(/_/g, ' ')}
-                    </Text>
-                  </TouchableOpacity>
-                ))
+                <ScrollView
+                  keyboardShouldPersistTaps="handled"
+                  style={styles.searchResultsScroll}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {filteredEateries.map(eatery => {
+                    const status = statuses[eatery.id];
+                    const level = status?.level ?? 'no_data';
+                    return (
+                      <TouchableOpacity
+                        key={eatery.id}
+                        style={styles.searchResultRow}
+                        onPress={() => flyToEatery(eatery)}
+                      >
+                        <View style={styles.searchResultLeft}>
+                          <Text style={styles.searchResultName}>{eatery.name}</Text>
+                          <Text style={styles.searchResultType}>
+                            {eatery.type.replace(/_/g, ' ')}
+                          </Text>
+                        </View>
+                        <View style={styles.searchResultStatus}>
+                          <StatusDot level={level} size={8} />
+                          <Text style={[styles.searchResultLevel, { color: getQueueColor(level) }]}>
+                            {queueLevelLabel(level)}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
               )}
             </View>
           )}
@@ -349,13 +369,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(22,22,30,0.98)',
     borderWidth: 1, borderColor: Colors.border,
     borderRadius: 14, marginTop: 6, overflow: 'hidden',
+    maxHeight: 280,
   },
+  searchResultsScroll: { flexGrow: 0 },
   searchResultRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     padding: 14,
     borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
+  searchResultLeft: { flex: 1, marginRight: 10 },
   searchResultName: { fontSize: 14, fontWeight: '600', color: Colors.text },
   searchResultType: { fontSize: 11, color: Colors.subtext, marginTop: 2, textTransform: 'capitalize' },
+  searchResultStatus: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  searchResultLevel: { fontSize: 11, fontWeight: '600' },
   noResults: { padding: 14, color: Colors.subtext, fontSize: 13 },
 
   loadingBadge: {

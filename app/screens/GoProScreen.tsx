@@ -35,11 +35,6 @@ const FEATURES = [
     title: 'Exclusive PRO Badge',
     description: 'A shiny PRO badge displayed on your profile and next to your name in the forum.',
   },
-  {
-    emoji: '🏪',
-    title: 'Eatery Owner Tools',
-    description: 'Claim your listing, view queue reports for your eatery, and get featured on the Home screen.',
-  },
 ];
 
 export function GoProScreen() {

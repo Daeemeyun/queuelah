@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Dimensions, FlatList, Animated,
+  Dimensions, FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -54,9 +54,12 @@ export function OnboardingScreen() {
         data={SLIDES}
         horizontal
         pagingEnabled
-        scrollEnabled={false}
         showsHorizontalScrollIndicator={false}
         keyExtractor={(_, i) => String(i)}
+        onMomentumScrollEnd={e => {
+          const index = Math.round(e.nativeEvent.contentOffset.x / width);
+          setActiveIndex(index);
+        }}
         renderItem={({ item }) => (
           <View style={styles.slide}>
             <Text style={styles.emoji}>{item.emoji}</Text>
@@ -83,9 +86,11 @@ export function OnboardingScreen() {
             {activeIndex === SLIDES.length - 1 ? "Let's Go! 🚀" : 'Next →'}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={finish} style={styles.skipBtn}>
-          <Text style={styles.skipText}>Skip for now</Text>
-        </TouchableOpacity>
+        {activeIndex < SLIDES.length - 1 && (
+          <TouchableOpacity onPress={finish} style={styles.skipBtn}>
+            <Text style={styles.skipText}>Skip for now</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </SafeAreaView>
   );

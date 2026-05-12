@@ -137,11 +137,6 @@ export function ProfileScreen() {
                 {user?.username?.slice(0, 2).toUpperCase() ?? 'AH'}
               </Text>
             </View>
-            {(user?.streak_days ?? 0) > 0 && (
-              <View style={styles.streakBadge}>
-                <Text style={styles.streakBadgeText}>🔥{user?.streak_days}</Text>
-              </View>
-            )}
           </View>
 
           {/* Username + Pro badge */}
@@ -313,11 +308,6 @@ export function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>ACCOUNT</Text>
           <View style={styles.settingsCard}>
-            <TouchableOpacity style={styles.settingsRow} onPress={() => navigation.navigate('Map')}>
-              <Text style={styles.settingsLabel}>🗺️  Go report a queue</Text>
-              <Text style={styles.settingsChevron}>›</Text>
-            </TouchableOpacity>
-            <View style={styles.settingsDivider} />
             <TouchableOpacity style={styles.settingsRow} onPress={() => navigation.navigate('GoPro')}>
               <Text style={styles.settingsLabel}>
                 {isPro ? '👑  QueueLah Pro — Active' : '👑  Upgrade to QueueLah Pro'}

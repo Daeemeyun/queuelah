@@ -127,7 +127,7 @@ export function HistoryScreen() {
               onPress={() => navigation.navigate('Auth')}
             >
               <Text style={styles.signUpBtnText}>
-                Sign up to track your history & earn points
+                Sign up to track your history & earn points →
               </Text>
             </TouchableOpacity>
           )}
@@ -306,5 +306,5 @@ const styles = StyleSheet.create({
   },
   reportBtnText: { color: '#000', fontWeight: '800', fontSize: 14 },
   signUpBtn: { marginTop: 4 },
-  signUpBtnText: { color: Colors.subtext, fontSize: 13, textAlign: 'center' },
+  signUpBtnText: { color: Colors.accent, fontSize: 13, textAlign: 'center', fontWeight: '600' },
 });

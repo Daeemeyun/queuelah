@@ -125,6 +125,7 @@ export function EateryDetailScreen() {
   const [confirmed, setConfirmed] = useState(false);
   const [selectedDay, setSelectedDay] = useState(0); // Mon=0
   const [paywallVisible, setPaywallVisible] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
   const isFav = favouriteIds.includes(eateryId);
 
   const myReview = user ? reviews.find(r => r.user_id === user.id) : null;
@@ -305,29 +306,6 @@ export function EateryDetailScreen() {
             </View>
           )}
 
-          {/* About section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>ABOUT</Text>
-            <View style={styles.aboutCard}>
-              <View style={styles.aboutRow}>
-                <Text style={styles.aboutLabel}>Type</Text>
-                <Text style={styles.aboutValue}>
-                  {eatery.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </Text>
-              </View>
-              <View style={styles.aboutRow}>
-                <Text style={styles.aboutLabel}>Address</Text>
-                <Text style={styles.aboutValue}>{eatery.address}</Text>
-              </View>
-              {eatery.opening_hours && (
-                <View style={styles.aboutRow}>
-                  <Text style={styles.aboutLabel}>Hours</Text>
-                  <Text style={styles.aboutValue}>{eatery.opening_hours}</Text>
-                </View>
-              )}
-            </View>
-          </View>
-
           {/* Reviews section */}
           <View style={styles.section}>
             <View style={styles.reviewsHeader}>
@@ -367,7 +345,7 @@ export function EateryDetailScreen() {
                 <Text style={styles.noReviewsText}>No reviews yet — be the first!</Text>
               </View>
             ) : (
-              reviews.slice(0, 5).map(review => (
+              (showAllReviews ? reviews : reviews.slice(0, 5)).map(review => (
                 <View key={review.id} style={styles.reviewCard}>
                   <View style={styles.reviewTop}>
                     <View style={styles.reviewLeft}>
@@ -403,8 +381,10 @@ export function EateryDetailScreen() {
               ))
             )}
 
-            {reviews.length > 5 && (
-              <Text style={styles.moreReviews}>+{reviews.length - 5} more reviews</Text>
+            {reviews.length > 5 && !showAllReviews && (
+              <TouchableOpacity onPress={() => setShowAllReviews(true)}>
+                <Text style={styles.moreReviews}>Show all {reviews.length} reviews →</Text>
+              </TouchableOpacity>
             )}
 
             {isGuest && (
@@ -690,7 +670,7 @@ const styles = StyleSheet.create({
   reviewDate: { fontSize: 11, color: Colors.subtext },
   deleteReview: { fontSize: 11, color: '#FF3B30' },
   reviewBody: { fontSize: 13, color: Colors.text, lineHeight: 18 },
-  moreReviews: { fontSize: 12, color: Colors.subtext, textAlign: 'center', fontStyle: 'italic' },
+  moreReviews: { fontSize: 13, color: Colors.accent, fontWeight: '600', textAlign: 'center', paddingVertical: 4 },
   reviewGuestCard: {
     backgroundColor: 'rgba(255,107,53,0.06)',
     borderWidth: 1, borderColor: 'rgba(255,107,53,0.15)',

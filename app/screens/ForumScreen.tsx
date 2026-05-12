@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, Alert, RefreshControl, Modal, BlurView,
+  ActivityIndicator, Alert, RefreshControl, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -279,7 +279,12 @@ export function ForumScreen() {
       </View>
 
       {/* Category filter chips */}
-      <View style={styles.filterRow}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterScroll}
+        contentContainerStyle={styles.filterRow}
+      >
         {([ALL_FILTER, ...Object.keys(CATEGORIES)] as FilterValue[]).map(f => {
           const isAll = f === ALL_FILTER;
           const cat = isAll ? null : CATEGORIES[f as ForumCategory];
@@ -297,7 +302,7 @@ export function ForumScreen() {
             </TouchableOpacity>
           );
         })}
-      </View>
+      </ScrollView>
 
       {/* Posts list */}
       {loading ? (
@@ -376,9 +381,10 @@ const styles = StyleSheet.create({
   },
   newBtnText: { color: '#000', fontWeight: '800', fontSize: 13 },
 
+  filterScroll: { paddingBottom: 12 },
   filterRow: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 8,
-    paddingHorizontal: 20, paddingBottom: 12,
+    flexDirection: 'row', gap: 8,
+    paddingHorizontal: 20, paddingRight: 20,
   },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 5,

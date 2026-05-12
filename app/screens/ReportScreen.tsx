@@ -164,7 +164,7 @@ export function ReportScreen() {
           {!selectedEateryId && (
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>SELECT EATERY</Text>
-              {eateries.slice(0, 6).map(e => (
+              {[...eateries].sort((a, b) => a.name.localeCompare(b.name)).map(e => (
                 <TouchableOpacity
                   key={e.id}
                   style={[styles.eateryRow, selectedEateryId === e.id && styles.eateryRowSelected]}
