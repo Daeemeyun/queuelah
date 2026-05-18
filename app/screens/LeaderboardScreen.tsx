@@ -10,7 +10,8 @@ import { useAuth } from '@hooks/useAuth';
 import { getRankTitle } from '@lib/gamification';
 import { ProBadge } from '@components/common/ProBadge';
 import { Colors } from '@constants/colors';
-import { SubscriptionTier, UsernameColor } from '@types/user';
+import { SubscriptionTier, UsernameColor, HatKey, EyewearKey, FloatItemKey, CompanionKey } from '@types/user';
+import { AvatarDisplay } from '@components/common/AvatarDisplay';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -22,6 +23,10 @@ interface LeaderboardEntry {
   subscription_tier: SubscriptionTier;
   username_color: UsernameColor;
   avatar_frame: string;
+  avatar_hat?: HatKey | null;
+  avatar_eyewear?: EyewearKey | null;
+  avatar_float_item?: FloatItemKey | null;
+  avatar_companion?: CompanionKey | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -59,11 +64,14 @@ function MedalCard({
       isPro && styles.proCardHighlight,
     ]}>
       <Text style={styles.medalEmoji}>{MEDALS[rank - 1]}</Text>
-      <View style={[styles.medalAvatar, isPro && styles.proAvatar]}>
-        <Text style={styles.medalAvatarText}>
-          {entry.username.slice(0, 2).toUpperCase()}
-        </Text>
-      </View>
+      <AvatarDisplay
+        size={44}
+        frame={entry.avatar_frame as any}
+        hat={entry.avatar_hat}
+        eyewear={entry.avatar_eyewear}
+        floatItem={entry.avatar_float_item}
+        companion={entry.avatar_companion}
+      />
       <View style={styles.medalNameRow}>
         <Text style={[styles.medalUsername, { color: nameColor }]} numberOfLines={1}>
           {entry.username}
@@ -96,10 +104,15 @@ function LeaderboardRow({
     ]}>
       <Text style={[styles.rowRank, rank <= 10 && styles.rowRankTop]}>{rank}</Text>
 
-      <View style={[styles.rowAvatar, isPro && styles.proAvatar]}>
-        <Text style={styles.rowAvatarText}>
-          {entry.username.slice(0, 2).toUpperCase()}
-        </Text>
+      <View style={styles.rowAvatarWrap}>
+        <AvatarDisplay
+          size={38}
+          frame={entry.avatar_frame as any}
+          hat={entry.avatar_hat}
+          eyewear={entry.avatar_eyewear}
+          floatItem={entry.avatar_float_item}
+          companion={entry.avatar_companion}
+        />
       </View>
 
       <View style={styles.rowCenter}>
@@ -143,7 +156,7 @@ export function LeaderboardScreen() {
     const [topRes, rankRes] = await Promise.all([
       supabase
         .from('user_profiles')
-        .select('id, username, points, streak_days, subscription_tier, username_color, avatar_frame')
+        .select('id, username, points, streak_days, subscription_tier, username_color, avatar_frame, avatar_hat, avatar_eyewear, avatar_float_item, avatar_companion')
         .order('points', { ascending: false })
         .limit(50),
 
@@ -282,13 +295,6 @@ const styles = StyleSheet.create({
   proCardHighlight: { borderColor: 'rgba(255,214,10,0.4)', backgroundColor: 'rgba(255,214,10,0.04)' },
 
   medalEmoji:      { fontSize: 28 },
-  medalAvatar: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: Colors.accent,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  proAvatar: { borderWidth: 2, borderColor: '#FFD60A' },
-  medalAvatarText: { fontSize: 14, fontWeight: '800', color: '#000' },
   medalNameRow:    { flexDirection: 'row', alignItems: 'center', gap: 4 },
   medalUsername:   { fontSize: 13, fontWeight: '700', maxWidth: 70 },
   medalRankTitle:  { fontSize: 9, color: Colors.subtext, textAlign: 'center' },
@@ -315,15 +321,9 @@ const styles = StyleSheet.create({
   meRowHighlight:  { backgroundColor: 'rgba(255,107,53,0.06)' },
   proRowHighlight: { backgroundColor: 'rgba(255,214,10,0.03)' },
 
-  rowRank:    { width: 28, fontSize: 14, fontWeight: '700', color: Colors.subtext, textAlign: 'center' },
-  rowRankTop: { color: Colors.accent },
-
-  rowAvatar: {
-    width: 38, height: 38, borderRadius: 19,
-    backgroundColor: Colors.accent,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  rowAvatarText: { fontSize: 12, fontWeight: '800', color: '#000' },
+  rowRank:      { width: 28, fontSize: 14, fontWeight: '700', color: Colors.subtext, textAlign: 'center' },
+  rowRankTop:   { color: Colors.accent },
+  rowAvatarWrap: { width: 54, alignItems: 'center', overflow: 'visible' },
 
   rowCenter:   { flex: 1, gap: 2 },
   rowNameLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },

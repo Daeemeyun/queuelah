@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Alert, ActivityIndicator,
+  TouchableOpacity, Alert, ActivityIndicator, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -14,7 +14,14 @@ import { BadgeEarnedModal } from '@components/profile/BadgeEarnedModal';
 import { ProBadge } from '@components/common/ProBadge';
 import { Colors } from '@constants/colors';
 import { supabase } from '@lib/supabase';
-import { AvatarFrame, UsernameColor } from '@types/user';
+import { AvatarFrame, UsernameColor, HatKey, EyewearKey, FloatItemKey, CompanionKey } from '@types/user';
+import { AvatarDisplay } from '@components/common/AvatarDisplay';
+import {
+  HAT_ASSETS, HAT_OPTIONS,
+  EYEWEAR_ASSETS, EYEWEAR_OPTIONS,
+  FLOAT_ITEM_ASSETS, FLOAT_ITEM_OPTIONS,
+  COMPANION_ASSETS, COMPANION_OPTIONS,
+} from '../../assets/avatar/avatarAssets';
 
 // ─── Frame / colour config ────────────────────────────────────────────────────
 
@@ -79,7 +86,7 @@ export function ProfileScreen() {
     }
   }, [badgeQueue, celebratingBadge]);
 
-  async function saveCustomisation(field: 'avatar_frame' | 'username_color', value: string) {
+  async function saveCustomisation(field: 'avatar_frame' | 'username_color' | 'avatar_hat' | 'avatar_eyewear' | 'avatar_float_item' | 'avatar_companion', value: string | null) {
     if (!user?.id) return;
     setSavingCustom(true);
     const { data, error } = await supabase
@@ -132,11 +139,14 @@ export function ProfileScreen() {
         {/* Hero */}
         <View style={styles.hero}>
           <View style={styles.avatarWrap}>
-            <View style={[styles.avatar, frameStyle(currentFrame)]}>
-              <Text style={styles.avatarText}>
-                {user?.username?.slice(0, 2).toUpperCase() ?? 'AH'}
-              </Text>
-            </View>
+            <AvatarDisplay
+              size={80}
+              frame={currentFrame}
+              hat={user?.avatar_hat}
+              eyewear={user?.avatar_eyewear}
+              floatItem={user?.avatar_float_item}
+              companion={user?.avatar_companion}
+            />
           </View>
 
           {/* Username + Pro badge */}
@@ -214,7 +224,104 @@ export function ProfileScreen() {
               {savingCustom && <ActivityIndicator size="small" color={Colors.accentYellow} />}
             </View>
 
-            <Text style={styles.customLabel}>Avatar Frame</Text>
+            {/* ── Hats ── */}
+            <Text style={styles.customLabel}>Hat</Text>
+            <View style={styles.customRow}>
+              <TouchableOpacity
+                style={[styles.accessoryOption, !user?.avatar_hat && styles.accessoryOptionActive]}
+                onPress={() => saveCustomisation('avatar_hat', null)}
+              >
+                <View style={styles.accessoryNone}><Text style={styles.accessoryNoneText}>✕</Text></View>
+                <Text style={[styles.accessoryLabel, !user?.avatar_hat && { color: Colors.accentYellow }]}>None</Text>
+              </TouchableOpacity>
+              {HAT_OPTIONS.map(h => (
+                <TouchableOpacity
+                  key={h.key}
+                  style={[styles.accessoryOption, user?.avatar_hat === h.key && styles.accessoryOptionActive]}
+                  onPress={() => saveCustomisation('avatar_hat', h.key)}
+                >
+                  <Image source={HAT_ASSETS[h.key]} style={styles.accessoryThumb} resizeMode="contain" />
+                  <Text style={[styles.accessoryLabel, user?.avatar_hat === h.key && { color: Colors.accentYellow }]}>
+                    {h.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* ── Eyewear ── */}
+            <Text style={[styles.customLabel, { marginTop: 16 }]}>Eyewear</Text>
+            <View style={styles.customRow}>
+              <TouchableOpacity
+                style={[styles.accessoryOption, !user?.avatar_eyewear && styles.accessoryOptionActive]}
+                onPress={() => saveCustomisation('avatar_eyewear', null)}
+              >
+                <View style={styles.accessoryNone}><Text style={styles.accessoryNoneText}>✕</Text></View>
+                <Text style={[styles.accessoryLabel, !user?.avatar_eyewear && { color: Colors.accentYellow }]}>None</Text>
+              </TouchableOpacity>
+              {EYEWEAR_OPTIONS.map(e => (
+                <TouchableOpacity
+                  key={e.key}
+                  style={[styles.accessoryOption, user?.avatar_eyewear === e.key && styles.accessoryOptionActive]}
+                  onPress={() => saveCustomisation('avatar_eyewear', e.key)}
+                >
+                  <Image source={EYEWEAR_ASSETS[e.key]} style={styles.accessoryThumb} resizeMode="contain" />
+                  <Text style={[styles.accessoryLabel, user?.avatar_eyewear === e.key && { color: Colors.accentYellow }]}>
+                    {e.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* ── Float items ── */}
+            <Text style={[styles.customLabel, { marginTop: 16 }]}>Float Item</Text>
+            <View style={styles.customRow}>
+              <TouchableOpacity
+                style={[styles.accessoryOption, !user?.avatar_float_item && styles.accessoryOptionActive]}
+                onPress={() => saveCustomisation('avatar_float_item', null)}
+              >
+                <View style={styles.accessoryNone}><Text style={styles.accessoryNoneText}>✕</Text></View>
+                <Text style={[styles.accessoryLabel, !user?.avatar_float_item && { color: Colors.accentYellow }]}>None</Text>
+              </TouchableOpacity>
+              {FLOAT_ITEM_OPTIONS.map(f => (
+                <TouchableOpacity
+                  key={f.key}
+                  style={[styles.accessoryOption, user?.avatar_float_item === f.key && styles.accessoryOptionActive]}
+                  onPress={() => saveCustomisation('avatar_float_item', f.key)}
+                >
+                  <Image source={FLOAT_ITEM_ASSETS[f.key]} style={styles.accessoryThumb} resizeMode="contain" />
+                  <Text style={[styles.accessoryLabel, user?.avatar_float_item === f.key && { color: Colors.accentYellow }]}>
+                    {f.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* ── Companion ── */}
+            <Text style={[styles.customLabel, { marginTop: 16 }]}>Companion</Text>
+            <View style={styles.customRow}>
+              <TouchableOpacity
+                style={[styles.accessoryOption, !user?.avatar_companion && styles.accessoryOptionActive]}
+                onPress={() => saveCustomisation('avatar_companion', null)}
+              >
+                <View style={styles.accessoryNone}><Text style={styles.accessoryNoneText}>✕</Text></View>
+                <Text style={[styles.accessoryLabel, !user?.avatar_companion && { color: Colors.accentYellow }]}>None</Text>
+              </TouchableOpacity>
+              {COMPANION_OPTIONS.map(c => (
+                <TouchableOpacity
+                  key={c.key}
+                  style={[styles.accessoryOption, user?.avatar_companion === c.key && styles.accessoryOptionActive]}
+                  onPress={() => saveCustomisation('avatar_companion', c.key)}
+                >
+                  <Image source={COMPANION_ASSETS[c.key]} style={styles.accessoryThumb} resizeMode="contain" />
+                  <Text style={[styles.accessoryLabel, user?.avatar_companion === c.key && { color: Colors.accentYellow }]}>
+                    {c.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* ── Avatar Frame ── */}
+            <Text style={[styles.customLabel, { marginTop: 16 }]}>Avatar Frame</Text>
             <View style={styles.customRow}>
               {FRAMES.map(f => (
                 <TouchableOpacity
@@ -226,15 +333,12 @@ export function ProfileScreen() {
                   ]}
                   onPress={() => saveCustomisation('avatar_frame', f.value)}
                 >
-                  <View style={[
-                    styles.framePreview,
-                    f.value !== 'none' && { borderWidth: 3, borderColor: f.borderColor },
-                    f.shadow && { shadowColor: f.borderColor, shadowOpacity: 0.8, shadowRadius: 6, elevation: 4 },
-                  ]}>
-                    <Text style={styles.framePreviewText}>
-                      {user?.username?.slice(0, 2).toUpperCase() ?? 'AH'}
-                    </Text>
-                  </View>
+                  <AvatarDisplay
+                    size={44}
+                    frame={f.value as AvatarFrame}
+                    hat={user?.avatar_hat}
+                    eyewear={user?.avatar_eyewear}
+                  />
                   <Text style={[styles.frameLabel, currentFrame === f.value && { color: Colors.accentYellow }]}>
                     {f.label}
                   </Text>
@@ -242,6 +346,7 @@ export function ProfileScreen() {
               ))}
             </View>
 
+            {/* ── Username Colour ── */}
             <Text style={[styles.customLabel, { marginTop: 16 }]}>Username Colour</Text>
             <View style={styles.customRow}>
               {USERNAME_COLORS.map(c => (
@@ -375,12 +480,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
   avatarWrap: { position: 'relative', marginBottom: 12 },
-  avatar: {
-    width: 80, height: 80, borderRadius: 40,
-    backgroundColor: Colors.accent,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  avatarText: { fontSize: 28, fontWeight: '800', color: '#000' },
   streakBadge: {
     position: 'absolute', bottom: -4, right: -8,
     backgroundColor: Colors.card2, borderRadius: 10,
@@ -444,6 +543,23 @@ const styles = StyleSheet.create({
   customLabel: { color: Colors.subtext, fontSize: 12, marginBottom: 10 },
   customRow:   { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
 
+  accessoryOption: {
+    alignItems: 'center', gap: 4,
+    backgroundColor: Colors.card,
+    borderWidth: 1, borderColor: Colors.border,
+    borderRadius: 12, padding: 8, minWidth: 64,
+  },
+  accessoryOptionActive: { borderColor: Colors.accentYellow },
+  accessoryThumb: { width: 48, height: 48 },
+  accessoryNone: {
+    width: 48, height: 48, borderRadius: 8,
+    backgroundColor: Colors.card2,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  accessoryNoneText: { fontSize: 16, color: Colors.subtext },
+  accessoryLabel: { color: Colors.subtext, fontSize: 10, textAlign: 'center' },
+
   frameOption: {
     alignItems: 'center', gap: 6,
     backgroundColor: Colors.card,
@@ -451,13 +567,7 @@ const styles = StyleSheet.create({
     borderRadius: 12, padding: 10,
   },
   frameOptionActive: { borderColor: Colors.accentYellow },
-  framePreview: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: Colors.accent,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  framePreviewText: { color: '#000', fontWeight: '800', fontSize: 13 },
-  frameLabel:       { color: Colors.subtext, fontSize: 11 },
+  frameLabel: { color: Colors.subtext, fontSize: 11 },
 
   colorOption: {
     alignItems: 'center', gap: 5,

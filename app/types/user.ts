@@ -2,6 +2,11 @@ export type SubscriptionTier = 'free' | 'pro';
 export type AvatarFrame      = 'none' | 'gold' | 'glow' | 'gradient';
 export type UsernameColor    = 'default' | 'gold' | 'blue' | 'purple' | 'red';
 
+export type HatKey       = 'kopitiam' | 'beanie' | 'graduation';
+export type EyewearKey   = 'aviators' | 'reading' | 'hearts';
+export type FloatItemKey = 'teh_tarik' | 'kaya_toast' | 'ang_pao';
+export type CompanionKey = 'baby_blob';
+
 export interface UserProfile {
   id: string;
   username: string;
@@ -12,6 +17,10 @@ export interface UserProfile {
   subscription_tier: SubscriptionTier;
   avatar_frame: AvatarFrame;
   username_color: UsernameColor;
+  avatar_hat?: HatKey | null;
+  avatar_eyewear?: EyewearKey | null;
+  avatar_float_item?: FloatItemKey | null;
+  avatar_companion?: CompanionKey | null;
   is_admin: boolean;
   created_at: string;
 }
