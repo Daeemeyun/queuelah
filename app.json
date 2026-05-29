@@ -1,8 +1,9 @@
 {
   "expo": {
-    "name": "queuelah-fresh",
-    "slug": "queuelah-fresh",
+    "name": "QueueLah",
+    "slug": "queuelah",
     "version": "1.0.0",
+    "scheme": "queuelah",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -14,11 +15,15 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.queuelah.app",
+      "buildNumber": "1",
       "infoPlist": {
-        "NSUserNotificationsUsageDescription": "QueueLah sends reminders to keep your reporting streak and notifies you when your reports are confirmed."
+        "NSUserNotificationsUsageDescription": "QueueLah sends reminders to keep your reporting streak and notifies you when your reports are confirmed.",
+        "NSLocationWhenInUseUsageDescription": "QueueLah uses your location to show nearby hawker centres and food courts on the map.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "QueueLah uses your location to show nearby hawker centres and food courts on the map."
       }
     },
     "android": {
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

@@ -13,6 +13,7 @@ import { useAuth } from '@hooks/useAuth';
 import { useAuthStore } from '@store/authStore';
 import { supabase } from '@lib/supabase';
 import { scheduleStreakReminder, cancelStreakReminder } from '@lib/notifications';
+import { ErrorReporting } from '@lib/errorReporting';
 import { Colors } from '@constants/colors';
 
 const STREAK_REMINDER_KEY = 'queuelah_streak_reminder_enabled';
@@ -24,6 +25,7 @@ export function SettingsScreen() {
   const [email, setEmail]             = useState<string | null>(null);
   const [notifGranted, setNotifGranted] = useState(false);
   const [streakReminder, setStreakReminder] = useState(true);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     // Get email from Supabase auth session
@@ -77,6 +79,48 @@ export function SettingsScreen() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign Out', style: 'destructive', onPress: signOut },
     ]);
+  }
+
+  function handleDeleteAccount() {
+    Alert.alert(
+      'Delete Account',
+      'This will permanently delete your account and all your data — reports, badges, forum posts, and reviews. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete My Account',
+          style: 'destructive',
+          onPress: confirmDeleteAccount,
+        },
+      ],
+    );
+  }
+
+  async function confirmDeleteAccount() {
+    setDeletingAccount(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('No active session');
+
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+      const res = await fetch(`${supabaseUrl}/functions/v1/delete-account`, {
+        method:  'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? `Server error ${res.status}`);
+      }
+
+      // Clear local state and sign out — account is gone
+      await signOut();
+    } catch (e: any) {
+      ErrorReporting.captureException(e, { context: 'delete_account' });
+      Alert.alert('Error', e.message ?? 'Could not delete account. Please try again or contact support.');
+    } finally {
+      setDeletingAccount(false);
+    }
   }
 
   return (
@@ -149,6 +193,17 @@ export function SettingsScreen() {
                 <ChevronRight size={18} color={Colors.subtext} />
               </TouchableOpacity>
             </View>
+
+            {/* Delete account — kept separate from the card above for visual weight */}
+            <TouchableOpacity
+              style={styles.deleteAccountBtn}
+              onPress={handleDeleteAccount}
+              disabled={deletingAccount}
+            >
+              <Text style={styles.deleteAccountText}>
+                {deletingAccount ? 'Deleting account…' : 'Delete Account'}
+              </Text>
+            </TouchableOpacity>
           </>
         )}
 
@@ -221,4 +276,15 @@ const styles = StyleSheet.create({
   rowValue:  { fontSize: 14, color: Colors.subtext, flexShrink: 1, textAlign: 'right' },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   destructive: { color: '#FF3B30' },
+
+  deleteAccountBtn: {
+    marginTop: 8,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  deleteAccountText: {
+    fontSize: 14,
+    color: '#FF3B30',
+    opacity: 0.7,
+  },
 });
