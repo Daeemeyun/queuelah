@@ -6,18 +6,21 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Slider from '@react-native-community/slider';
+import { ChevronLeft } from 'lucide-react-native';
 import { supabase } from '@lib/supabase';
 import { useAuth } from '@hooks/useAuth';
 import { useAuthStore } from '@store/authStore';
 import { useEateries } from '@hooks/useEateries';
 import { QueueSelector } from '@components/report/QueueSelector';
 import { BadgeEarnedModal } from '@components/profile/BadgeEarnedModal';
+import { PressableScale } from '@components/common/PressableScale';
 import { Colors } from '@constants/colors';
 import { QueueLevel } from '@types/queue';
 import { getReportExpiryTime } from '@lib/helpers';
 import { awardPointsForReport, BadgeResult } from '@lib/gamification';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Config } from '@constants/config';
+import { Analytics } from '@lib/analytics';
 
 const SLIDER_BOUNDS: Record<QueueLevel, { min: number; max: number }> = {
   short:  { min: 0,  max: 10 },
@@ -42,7 +45,6 @@ export function ReportScreen() {
   const [celebratingBadge, setCelebratingBadge] = useState<BadgeResult | null>(null);
   const [badgeQueue, setBadgeQueue] = useState<BadgeResult[]>([]);
 
-  // Show badges one at a time after they're queued
   useEffect(() => {
     if (badgeQueue.length > 0 && !celebratingBadge) {
       setCelebratingBadge(badgeQueue[0]);
@@ -75,7 +77,7 @@ export function ReportScreen() {
         const elapsed = Date.now() - parseInt(lastReport);
         if (elapsed < Config.REPORT_COOLDOWN_MS) {
           const remaining = Math.ceil((Config.REPORT_COOLDOWN_MS - elapsed) / 60000);
-          Alert.alert('Too soon! 🛑', `Please wait ${remaining} more minute${remaining !== 1 ? 's' : ''}.`);
+          Alert.alert('Too soon!', `Please wait ${remaining} more minute${remaining !== 1 ? 's' : ''}.`);
           return;
         }
       }
@@ -95,6 +97,12 @@ export function ReportScreen() {
 
       if (error) throw error;
 
+      Analytics.track('report_submitted', {
+        queue_level:     selectedLevel,
+        wait_minutes:    minutes,
+        eatery_id:       selectedEateryId,
+      });
+
       if (isGuest) {
         await AsyncStorage.setItem(
           `cooldown_${selectedEateryId}_${stallId ?? 'eatery'}`,
@@ -108,23 +116,21 @@ export function ReportScreen() {
         const { pointsAwarded, newStreak, streakBroken, newBadges } =
           await awardPointsForReport(user.id);
 
-        // Refresh user profile
         const { data: updatedProfile } = await supabase
           .from('user_profiles').select('*').eq('id', user.id).single();
         if (updatedProfile) setUser(updatedProfile as any);
 
         if (streakBroken) {
-          successMessage = `+${pointsAwarded} pts! Streak reset to 1 day. Stay consistent! 💪`;
+          successMessage = `+${pointsAwarded} pts! Streak reset to 1 day. Stay consistent!`;
         } else if (newStreak > 1) {
           successMessage = `+${pointsAwarded} pts earned! 🔥 ${newStreak}-day streak!`;
         } else {
           successMessage = `+${pointsAwarded} pts earned! Keep it up 🍜`;
         }
 
-        // Queue badge celebrations
         if (newBadges.length > 0) {
-          // Show success alert first, then badges
-          Alert.alert('✅ Report submitted!', successMessage, [{
+          newBadges.forEach(b => Analytics.track('badge_earned', { badge_key: b.key }));
+          Alert.alert('Report submitted!', successMessage, [{
             text: 'OK',
             onPress: () => setBadgeQueue(newBadges),
           }]);
@@ -132,7 +138,7 @@ export function ReportScreen() {
         }
       }
 
-      Alert.alert('✅ Report submitted!', successMessage, [
+      Alert.alert('Report submitted!', successMessage, [
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);
     } catch (e: any) {
@@ -146,8 +152,8 @@ export function ReportScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={styles.backText}>←</Text>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={8}>
+            <ChevronLeft size={20} color={Colors.text} />
           </TouchableOpacity>
           <Text style={styles.title}>Report Queue</Text>
         </View>
@@ -228,17 +234,16 @@ export function ReportScreen() {
             </View>
           )}
 
-          <TouchableOpacity
+          <PressableScale
             style={[styles.submitBtn, (!selectedLevel || submitting) && styles.submitBtnDisabled]}
             onPress={handleSubmit}
             disabled={!selectedLevel || submitting}
-            activeOpacity={0.85}
           >
             {submitting
               ? <ActivityIndicator color="#000" />
-              : <Text style={styles.submitText}>🚀 Submit Report</Text>
+              : <Text style={styles.submitText}>Submit Report</Text>
             }
-          </TouchableOpacity>
+          </PressableScale>
 
           <Text style={styles.disclaimer}>
             {isGuest
@@ -249,12 +254,10 @@ export function ReportScreen() {
         </View>
       </ScrollView>
 
-      {/* Badge celebration — shows after successful report */}
       <BadgeEarnedModal
         badge={celebratingBadge}
         onClose={() => {
           setCelebratingBadge(null);
-          // If no more badges to show, go back
           if (badgeQueue.length === 0) navigation.goBack();
         }}
       />
@@ -279,7 +282,6 @@ const styles = StyleSheet.create({
     borderRadius: 10, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: Colors.border,
   },
-  backText: { color: Colors.text, fontSize: 18 },
   title: { fontSize: 20, fontWeight: '800', color: Colors.text },
   body: { padding: 16, gap: 16 },
   locationCard: {

@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { Crown, Trophy, Settings2, Wrench, ChevronRight, X } from 'lucide-react-native';
 import { useAuthStore } from '@store/authStore';
 import { useAuth } from '@hooks/useAuth';
 import { useProfile } from '@hooks/useProfile';
@@ -12,6 +13,7 @@ import { usePremium } from '@hooks/usePremium';
 import { getRankTitle, getRankProgress, BadgeResult } from '@lib/gamification';
 import { BadgeEarnedModal } from '@components/profile/BadgeEarnedModal';
 import { ProBadge } from '@components/common/ProBadge';
+import { PressableScale } from '@components/common/PressableScale';
 import { Colors } from '@constants/colors';
 import { supabase } from '@lib/supabase';
 import { AvatarFrame, UsernameColor, HatKey, EyewearKey, FloatItemKey, CompanionKey } from '@types/user';
@@ -117,9 +119,9 @@ export function ProfileScreen() {
             ))}
           </View>
           <Text style={styles.guestBadgeHint}>8 badges to unlock</Text>
-          <TouchableOpacity style={styles.joinBtn} onPress={() => navigation.navigate('Auth')} activeOpacity={0.85}>
+          <PressableScale style={styles.joinBtn} onPress={() => navigation.navigate('Auth')}>
             <Text style={styles.joinBtnText}>Sign Up — It's Free</Text>
-          </TouchableOpacity>
+          </PressableScale>
           <TouchableOpacity onPress={() => navigation.navigate('Auth')}>
             <Text style={styles.loginLink}>Already have an account? Log in →</Text>
           </TouchableOpacity>
@@ -169,17 +171,6 @@ export function ProfileScreen() {
           </View>
         </View>
 
-        {/* Go Pro banner — free users only */}
-        {!isPro && (
-          <TouchableOpacity style={styles.proBanner} onPress={() => navigation.navigate('GoPro')} activeOpacity={0.85}>
-            <Text style={styles.proBannerEmoji}>👑</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.proBannerTitle}>Upgrade to QueueLah Pro</Text>
-              <Text style={styles.proBannerSub}>Trends, custom profile, leaderboard perks & more</Text>
-            </View>
-            <Text style={styles.proBannerChevron}>›</Text>
-          </TouchableOpacity>
-        )}
 
         {/* Stats */}
         {loading ? (
@@ -216,8 +207,8 @@ export function ProfileScreen() {
           </View>
         )}
 
-        {/* Pro customisation — Pro users only */}
-        {isPro && (
+        {/* Customisation — available to all users */}
+        {user && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>PRO CUSTOMISATION</Text>
@@ -231,7 +222,7 @@ export function ProfileScreen() {
                 style={[styles.accessoryOption, !user?.avatar_hat && styles.accessoryOptionActive]}
                 onPress={() => saveCustomisation('avatar_hat', null)}
               >
-                <View style={styles.accessoryNone}><Text style={styles.accessoryNoneText}>✕</Text></View>
+                <View style={styles.accessoryNone}><X size={16} color={Colors.subtext} /></View>
                 <Text style={[styles.accessoryLabel, !user?.avatar_hat && { color: Colors.accentYellow }]}>None</Text>
               </TouchableOpacity>
               {HAT_OPTIONS.map(h => (
@@ -255,7 +246,7 @@ export function ProfileScreen() {
                 style={[styles.accessoryOption, !user?.avatar_eyewear && styles.accessoryOptionActive]}
                 onPress={() => saveCustomisation('avatar_eyewear', null)}
               >
-                <View style={styles.accessoryNone}><Text style={styles.accessoryNoneText}>✕</Text></View>
+                <View style={styles.accessoryNone}><X size={16} color={Colors.subtext} /></View>
                 <Text style={[styles.accessoryLabel, !user?.avatar_eyewear && { color: Colors.accentYellow }]}>None</Text>
               </TouchableOpacity>
               {EYEWEAR_OPTIONS.map(e => (
@@ -279,7 +270,7 @@ export function ProfileScreen() {
                 style={[styles.accessoryOption, !user?.avatar_float_item && styles.accessoryOptionActive]}
                 onPress={() => saveCustomisation('avatar_float_item', null)}
               >
-                <View style={styles.accessoryNone}><Text style={styles.accessoryNoneText}>✕</Text></View>
+                <View style={styles.accessoryNone}><X size={16} color={Colors.subtext} /></View>
                 <Text style={[styles.accessoryLabel, !user?.avatar_float_item && { color: Colors.accentYellow }]}>None</Text>
               </TouchableOpacity>
               {FLOAT_ITEM_OPTIONS.map(f => (
@@ -303,7 +294,7 @@ export function ProfileScreen() {
                 style={[styles.accessoryOption, !user?.avatar_companion && styles.accessoryOptionActive]}
                 onPress={() => saveCustomisation('avatar_companion', null)}
               >
-                <View style={styles.accessoryNone}><Text style={styles.accessoryNoneText}>✕</Text></View>
+                <View style={styles.accessoryNone}><X size={16} color={Colors.subtext} /></View>
                 <Text style={[styles.accessoryLabel, !user?.avatar_companion && { color: Colors.accentYellow }]}>None</Text>
               </TouchableOpacity>
               {COMPANION_OPTIONS.map(c => (
@@ -414,27 +405,37 @@ export function ProfileScreen() {
           <Text style={styles.sectionTitle}>ACCOUNT</Text>
           <View style={styles.settingsCard}>
             <TouchableOpacity style={styles.settingsRow} onPress={() => navigation.navigate('GoPro')}>
-              <Text style={styles.settingsLabel}>
-                {isPro ? '👑  QueueLah Pro — Active' : '👑  Upgrade to QueueLah Pro'}
-              </Text>
-              <Text style={styles.settingsChevron}>›</Text>
+              <View style={styles.settingsLabelRow}>
+                <Crown size={16} color={Colors.accentYellow} />
+                <Text style={styles.settingsLabel}>QueueLah Pro — Coming Soon</Text>
+              </View>
+              <ChevronRight size={18} color={Colors.subtext} />
             </TouchableOpacity>
             <View style={styles.settingsDivider} />
             <TouchableOpacity style={styles.settingsRow} onPress={() => navigation.navigate('Leaderboard')}>
-              <Text style={styles.settingsLabel}>🏆  Leaderboard</Text>
-              <Text style={styles.settingsChevron}>›</Text>
+              <View style={styles.settingsLabelRow}>
+                <Trophy size={16} color={Colors.text} />
+                <Text style={styles.settingsLabel}>Leaderboard</Text>
+              </View>
+              <ChevronRight size={18} color={Colors.subtext} />
             </TouchableOpacity>
             <View style={styles.settingsDivider} />
             <TouchableOpacity style={styles.settingsRow} onPress={() => navigation.navigate('Settings')}>
-              <Text style={styles.settingsLabel}>⚙️  Settings</Text>
-              <Text style={styles.settingsChevron}>›</Text>
+              <View style={styles.settingsLabelRow}>
+                <Settings2 size={16} color={Colors.text} />
+                <Text style={styles.settingsLabel}>Settings</Text>
+              </View>
+              <ChevronRight size={18} color={Colors.subtext} />
             </TouchableOpacity>
             {user?.is_admin && (
               <>
                 <View style={styles.settingsDivider} />
                 <TouchableOpacity style={styles.settingsRow} onPress={() => navigation.navigate('Admin')}>
-                  <Text style={styles.settingsLabel}>🛠️  Admin Panel</Text>
-                  <Text style={styles.settingsChevron}>›</Text>
+                  <View style={styles.settingsLabelRow}>
+                    <Wrench size={16} color={Colors.text} />
+                    <Text style={styles.settingsLabel}>Admin Panel</Text>
+                  </View>
+                  <ChevronRight size={18} color={Colors.subtext} />
                 </TouchableOpacity>
               </>
             )}
@@ -557,7 +558,6 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: Colors.border,
   },
-  accessoryNoneText: { fontSize: 16, color: Colors.subtext },
   accessoryLabel: { color: Colors.subtext, fontSize: 10, textAlign: 'center' },
 
   frameOption: {
@@ -613,8 +613,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.card,
     borderRadius: 14, borderWidth: 1, borderColor: Colors.border, overflow: 'hidden',
   },
-  settingsRow:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14 },
-  settingsDivider: { height: 1, backgroundColor: Colors.border },
-  settingsLabel:   { fontSize: 14, color: Colors.text },
-  settingsChevron: { fontSize: 20, color: Colors.subtext },
+  settingsRow:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14 },
+  settingsDivider:  { height: 1, backgroundColor: Colors.border },
+  settingsLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  settingsLabel:    { fontSize: 14, color: Colors.text },
 });

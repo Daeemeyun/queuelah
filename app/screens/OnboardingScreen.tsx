@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '@constants/colors';
+import { Analytics } from '@lib/analytics';
 
 const { width } = Dimensions.get('window');
 
@@ -35,6 +36,7 @@ export function OnboardingScreen() {
 
   async function finish() {
     await AsyncStorage.setItem('onboarding_done', 'true');
+    Analytics.track('onboarding_completed');
     navigation.replace('Main');
   }
 

@@ -9,6 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import { supabase } from '@lib/supabase';
 import { useAuth } from '@hooks/useAuth';
 import { checkContent } from '@lib/contentFilter';
+import { Analytics } from '@lib/analytics';
 import { Colors } from '@constants/colors';
 import { CATEGORIES, ForumCategory } from '@screens/ForumScreen';
 
@@ -57,6 +58,7 @@ export function NewForumPostScreen() {
 
       if (error) throw error;
 
+      Analytics.track('forum_post_created');
       navigation.goBack();
     } catch (err: any) {
       Alert.alert('Error', err.message ?? 'Could not submit post. Please try again.');

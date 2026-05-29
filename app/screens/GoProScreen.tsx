@@ -1,13 +1,15 @@
 import React from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Alert,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { X } from 'lucide-react-native';
 
 import { Colors } from '@constants/colors';
-import { usePremium } from '@hooks/usePremium';
+import { Analytics } from '@lib/analytics';
+import { useEffect } from 'react';
 
 const FEATURES = [
   {
@@ -39,22 +41,17 @@ const FEATURES = [
 
 export function GoProScreen() {
   const navigation = useNavigation<any>();
-  const { isPro } = usePremium();
 
-  function handleUpgrade() {
-    Alert.alert(
-      'Coming Soon',
-      'In-app purchases are coming soon. Stay tuned for QueueLah Pro!',
-      [{ text: 'OK' }],
-    );
-  }
+  useEffect(() => {
+    Analytics.track('go_pro_screen_viewed');
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>✕</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={8}>
+          <X size={20} color={Colors.subtext} />
         </TouchableOpacity>
       </View>
 
@@ -70,11 +67,6 @@ export function GoProScreen() {
           <Text style={styles.heroSubtitle}>
             The full QueueLah experience — for power users who take their makan seriously.
           </Text>
-          {isPro && (
-            <View style={styles.alreadyProBadge}>
-              <Text style={styles.alreadyProText}>✓ You're already on Pro</Text>
-            </View>
-          )}
         </View>
 
         {/* Feature list */}
@@ -90,31 +82,13 @@ export function GoProScreen() {
           ))}
         </View>
 
-        {/* Pricing */}
-        <View style={styles.pricingCard}>
-          <View style={styles.pricingRow}>
-            <Text style={styles.pricingLabel}>QueueLah Pro</Text>
-            <View style={styles.pricingBadge}>
-              <Text style={styles.pricingBadgeText}>Coming Soon</Text>
-            </View>
-          </View>
-          <Text style={styles.pricingDesc}>
-            Payment integration is on the way. We'll notify you when Pro is available.
+        {/* Coming Soon card — no purchase button */}
+        <View style={styles.comingSoonCard}>
+          <Text style={styles.comingSoonTitle}>Launching Soon</Text>
+          <Text style={styles.comingSoonDesc}>
+            Pro subscriptions are coming in a future update. All features are free while we're in beta — enjoy them on us!
           </Text>
         </View>
-
-        {/* CTA */}
-        {!isPro ? (
-          <TouchableOpacity style={styles.upgradeBtn} onPress={handleUpgrade} activeOpacity={0.85}>
-            <Text style={styles.upgradeBtnText}>👑  Upgrade to Pro</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.activeCard}>
-            <Text style={styles.activeText}>
-              You have access to all Pro features. Thank you for supporting QueueLah! 🙏
-            </Text>
-          </View>
-        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -126,8 +100,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4,
     alignItems: 'flex-end',
   },
-  backBtn:  { padding: 8 },
-  backText: { color: Colors.subtext, fontSize: 18 },
+  backBtn: { padding: 8 },
 
   scroll:        { flex: 1 },
   scrollContent: { padding: 24, paddingBottom: 48, gap: 20 },
@@ -140,13 +113,6 @@ const styles = StyleSheet.create({
   heroSubtitle: {
     color: Colors.subtext, fontSize: 15, textAlign: 'center', lineHeight: 22,
   },
-  alreadyProBadge: {
-    backgroundColor: 'rgba(255,214,10,0.15)',
-    borderWidth: 1, borderColor: 'rgba(255,214,10,0.4)',
-    borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8, marginTop: 4,
-  },
-  alreadyProText: { color: Colors.accentYellow, fontWeight: '700', fontSize: 14 },
-
   featureList: { gap: 12 },
   featureCard: {
     flexDirection: 'row', gap: 16, alignItems: 'flex-start',
@@ -159,31 +125,12 @@ const styles = StyleSheet.create({
   featureTitle: { color: Colors.text,    fontSize: 15, fontWeight: '700' },
   featureDesc:  { color: Colors.subtext, fontSize: 13, lineHeight: 18 },
 
-  pricingCard: {
+  comingSoonCard: {
     backgroundColor: Colors.card2,
     borderRadius: 16, padding: 20, gap: 8,
     borderWidth: 1, borderColor: Colors.border,
-  },
-  pricingRow:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  pricingLabel:     { color: Colors.text, fontSize: 17, fontWeight: '700' },
-  pricingBadge:     { backgroundColor: 'rgba(255,214,10,0.15)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
-  pricingBadgeText: { color: Colors.accentYellow, fontSize: 12, fontWeight: '600' },
-  pricingDesc:      { color: Colors.subtext, fontSize: 13, lineHeight: 18 },
-
-  upgradeBtn: {
-    backgroundColor: Colors.accentYellow,
-    borderRadius: 16, paddingVertical: 18,
     alignItems: 'center',
-    shadowColor: Colors.accentYellow,
-    shadowOpacity: 0.3, shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 }, elevation: 6,
   },
-  upgradeBtnText: { color: '#000', fontWeight: '900', fontSize: 17 },
-
-  activeCard: {
-    backgroundColor: 'rgba(255,214,10,0.08)',
-    borderWidth: 1, borderColor: 'rgba(255,214,10,0.2)',
-    borderRadius: 14, padding: 18,
-  },
-  activeText: { color: Colors.subtext, fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  comingSoonTitle: { color: Colors.accentYellow, fontSize: 16, fontWeight: '700' },
+  comingSoonDesc:  { color: Colors.subtext, fontSize: 13, lineHeight: 20, textAlign: 'center' },
 });

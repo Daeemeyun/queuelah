@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, ActivityIndicator, Alert, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
+import { ChevronLeft, MapPin, Pencil, Plus } from 'lucide-react-native';
+import { PressableScale } from '@components/common/PressableScale';
 
 import { useEateryStore } from '@store/eateryStore';
 import { useQueueStore } from '@store/queueStore';
@@ -14,8 +16,6 @@ import { useConfirmReport } from '@hooks/useConfirmReport';
 import { useAuth } from '@hooks/useAuth';
 import { useReviews } from '@hooks/useReviews';
 import { useTrends, TrendDay } from '@hooks/useTrends';
-import { usePremium } from '@hooks/usePremium';
-import { PaywallModal } from '@components/common/PaywallModal';
 import { StatusDot } from '@components/common/StatusDot';
 import { Colors } from '@constants/colors';
 import {
@@ -23,6 +23,7 @@ import {
   getFreshnessLabel, getFreshnessPercent,
 } from '@lib/helpers';
 import { QueueLevel } from '@types/queue';
+import { Analytics } from '@lib/analytics';
 
 const USERNAME_COLOR_MAP: Record<string, string> = {
   default: Colors.text,
@@ -120,13 +121,16 @@ export function EateryDetailScreen() {
   const { confirmReport, confirming } = useConfirmReport();
   const { reviews, loading: reviewsLoading, averageRating, deleteReview } = useReviews(eateryId);
   const { loading: trendsLoading, hasEnoughData, textSummary, days } = useTrends(eateryId);
-  const { isPro } = usePremium();
-
   const [confirmed, setConfirmed] = useState(false);
   const [selectedDay, setSelectedDay] = useState(0); // Mon=0
-  const [paywallVisible, setPaywallVisible] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const isFav = favouriteIds.includes(eateryId);
+
+  useFocusEffect(useCallback(() => {
+    if (eatery) {
+      Analytics.track('eatery_detail_viewed', { eatery_id: eatery.id, eatery_name: eatery.name });
+    }
+  }, [eatery?.id]));
 
   const myReview = user ? reviews.find(r => r.user_id === user.id) : null;
 
@@ -163,8 +167,9 @@ export function EateryDetailScreen() {
           <TouchableOpacity
             style={styles.backBtn}
             onPress={() => navigation.goBack()}
+            hitSlop={8}
           >
-            <Text style={styles.backText}>←</Text>
+            <ChevronLeft size={20} color={Colors.text} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.favBtn}
@@ -250,8 +255,9 @@ export function EateryDetailScreen() {
                 <Text style={styles.chipText}>🕗 {eatery.opening_hours}</Text>
               </View>
             )}
-            <View style={styles.chip}>
-              <Text style={styles.chipText}>📍 {eatery.address.split(',')[0]}</Text>
+            <View style={[styles.chip, styles.chipRow]}>
+              <MapPin size={11} color={Colors.subtext} />
+              <Text style={styles.chipText}>{eatery.address.split(',')[0]}</Text>
             </View>
           </View>
 
@@ -322,7 +328,7 @@ export function EateryDetailScreen() {
               </View>
               {!isGuest && (
                 <TouchableOpacity
-                  style={styles.writeReviewBtn}
+                  style={[styles.writeReviewBtn, styles.writeReviewBtnRow]}
                   onPress={() => navigation.navigate('WriteReview', {
                     eateryId: eatery.id,
                     eateryName: eatery.name,
@@ -330,9 +336,10 @@ export function EateryDetailScreen() {
                     existingBody: myReview?.body ?? '',
                   })}
                 >
-                  <Text style={styles.writeReviewText}>
-                    {myReview ? '✏️ Edit' : '+ Review'}
-                  </Text>
+                  {myReview
+                    ? <><Pencil size={12} color={Colors.accent} /><Text style={styles.writeReviewText}> Edit</Text></>
+                    : <Text style={styles.writeReviewText}>+ Review</Text>
+                  }
                 </TouchableOpacity>
               )}
             </View>
@@ -404,11 +411,6 @@ export function EateryDetailScreen() {
                 <Text style={styles.sectionTitle}>QUEUE TRENDS</Text>
                 <Text style={styles.trendsSub}>Based on last 30 days</Text>
               </View>
-              {!isPro && (
-                <View style={styles.proChip}>
-                  <Text style={styles.proChipText}>👑 PRO</Text>
-                </View>
-              )}
             </View>
 
             {trendsLoading ? (
@@ -417,8 +419,7 @@ export function EateryDetailScreen() {
               <View style={styles.noTrends}>
                 <Text style={styles.noTrendsText}>Not enough data yet — check back after more reports come in.</Text>
               </View>
-            ) : isPro ? (
-              /* Pro: full chart with day tabs */
+            ) : (
               <View style={styles.trendsCard}>
                 {/* Day selector */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dayScroll}>
@@ -456,44 +457,20 @@ export function EateryDetailScreen() {
                 </View>
                 <Text style={styles.trendSummaryInCard}>{textSummary}</Text>
               </View>
-            ) : (
-              /* Free: text summary + paywall nudge */
-              <TouchableOpacity
-                style={styles.trendsLockedCard}
-                onPress={() => setPaywallVisible(true)}
-                activeOpacity={0.85}
-              >
-                <View style={styles.trendsLockedTop}>
-                  <Text style={styles.trendsLockedEmoji}>📊</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.trendsLockedTitle}>Queue Trends</Text>
-                    <Text style={styles.trendsLockedSummary}>{textSummary}</Text>
-                  </View>
-                </View>
-                <View style={styles.trendsLockedCta}>
-                  <Text style={styles.trendsLockedCtaText}>Upgrade to Pro for the full hour-by-hour chart →</Text>
-                </View>
-              </TouchableOpacity>
             )}
           </View>
 
-          <PaywallModal
-            visible={paywallVisible}
-            featureName="Queue Trends"
-            onClose={() => setPaywallVisible(false)}
-          />
-
           {/* Report button */}
-          <TouchableOpacity
+          <PressableScale
             style={styles.reportBtn}
             onPress={() => navigation.navigate('ReportQueue', {
               eateryId: eatery.id,
               eateryName: eatery.name,
             })}
-            activeOpacity={0.85}
           >
-            <Text style={styles.reportBtnText}>+ Report Queue for this Eatery</Text>
-          </TouchableOpacity>
+            <Plus size={15} color="#000" strokeWidth={3} />
+            <Text style={styles.reportBtnText}>Report Queue for this Eatery</Text>
+          </PressableScale>
 
           {/* Guest upsell */}
           {isGuest && (
@@ -542,7 +519,6 @@ const styles = StyleSheet.create({
     borderRadius: 10, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: Colors.border,
   },
-  backText: { color: Colors.text, fontSize: 18 },
   favBtn: {
     position: 'absolute', top: 16, right: 16,
     width: 36, height: 36,
@@ -598,6 +574,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 7,
     borderWidth: 1, borderColor: Colors.border,
   },
+  chipRow:  { flexDirection: 'row', alignItems: 'center', gap: 5 },
   chipText: { fontSize: 12, color: Colors.subtext },
 
   // Section
@@ -654,6 +631,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 7,
     borderWidth: 1, borderColor: Colors.border,
   },
+  writeReviewBtnRow: { flexDirection: 'row', alignItems: 'center' },
   writeReviewText: { fontSize: 12, color: Colors.accent, fontWeight: '600' },
   noReviews: { alignItems: 'center', paddingVertical: 20, gap: 6 },
   noReviewsEmoji: { fontSize: 28 },
@@ -729,8 +707,9 @@ const styles = StyleSheet.create({
 
   // Report button
   reportBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
     backgroundColor: Colors.accent, borderRadius: 16,
-    paddingVertical: 16, alignItems: 'center',
+    paddingVertical: 16,
     shadowColor: Colors.accent, shadowOpacity: 0.3,
     shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 5,
   },

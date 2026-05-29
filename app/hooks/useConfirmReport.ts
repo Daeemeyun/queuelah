@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Analytics } from '@lib/analytics';
 
 export function useConfirmReport() {
   const [confirming, setConfirming] = useState(false);
@@ -32,6 +33,7 @@ export function useConfirmReport() {
         .eq('id', data.id);
 
       await AsyncStorage.setItem(key, '1');
+      Analytics.track('report_confirmed', { eatery_id: eateryId });
       return true;
     } finally {
       setConfirming(false);

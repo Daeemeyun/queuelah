@@ -5,11 +5,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { Plus } from 'lucide-react-native';
 
 import { useEateries } from '@hooks/useEateries';
 import { useAllQueueStatuses } from '@hooks/useAllQueueStatuses';
 import { useLocation } from '@hooks/useLocation';
 import { useAuth } from '@hooks/useAuth';
+import { PressableScale } from '@components/common/PressableScale';
 import { distanceKm, formatDistance } from '@lib/maps';
 import { getQueueColor, queueLevelLabel } from '@lib/helpers';
 import { Colors } from '@constants/colors';
@@ -21,7 +23,7 @@ const QUEUE_SORT: Record<string, number> = {
 };
 
 const NEAR_ME_RADIUS_KM = 3;
-const NEAR_ME_FALLBACK = 20; // show this many if none within radius
+const NEAR_ME_FALLBACK = 20;
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -45,9 +47,7 @@ function FeaturedCard({
 
   return (
     <TouchableOpacity style={featuredCard.wrap} activeOpacity={0.8} onPress={onPress}>
-      {/* Colour accent bar */}
       <View style={[featuredCard.bar, { backgroundColor: color }]} />
-
       <View style={featuredCard.body}>
         <View style={featuredCard.topRow}>
           <View style={[featuredCard.badge, { backgroundColor: color + '22' }]}>
@@ -58,10 +58,8 @@ function FeaturedCard({
             <Text style={featuredCard.sponsoredText}>Featured</Text>
           </View>
         </View>
-
         <Text style={featuredCard.name} numberOfLines={2}>{eatery.name}</Text>
         <Text style={featuredCard.type}>{eateryTypeLabel(eatery.type)}</Text>
-
         {status?.estimated_minutes != null && (
           <Text style={featuredCard.wait}>~{Math.round(status.estimated_minutes)} min wait</Text>
         )}
@@ -86,9 +84,7 @@ function NearMeRow({
 
   return (
     <TouchableOpacity style={nearRow.wrap} activeOpacity={0.75} onPress={onPress}>
-      {/* Queue colour strip */}
       <View style={[nearRow.strip, { backgroundColor: color }]} />
-
       <View style={nearRow.content}>
         <View style={nearRow.left}>
           <Text style={nearRow.name} numberOfLines={1}>{eatery.name}</Text>
@@ -96,7 +92,6 @@ function NearMeRow({
             {eateryTypeLabel(eatery.type)}  ·  {distLabel}
           </Text>
         </View>
-
         <View style={nearRow.right}>
           <View style={[nearRow.pill, { backgroundColor: color + '22', borderColor: color + '55' }]}>
             <Text style={[nearRow.pillText, { color }]}>{label}</Text>
@@ -119,7 +114,6 @@ export function HomeScreen() {
   const statuses = useAllQueueStatuses();
   const location = useLocation();
 
-  // Featured eateries (is_featured = true, featured_until in future or null)
   const featured = useMemo(
     () =>
       eateries.filter(e => {
@@ -130,7 +124,6 @@ export function HomeScreen() {
     [eateries],
   );
 
-  // Near Me: sorted by queue level then distance, capped to NEAR_ME_RADIUS_KM
   const nearMe = useMemo(() => {
     const withDist = eateries.map(e => ({
       eatery: e,
@@ -159,19 +152,19 @@ export function HomeScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={Colors.accent} />}
       >
-
         {/* ── Header ── */}
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>{greeting()}{name ? `, ${name}` : ''}</Text>
             <Text style={styles.tagline}>Where's the queue at?</Text>
           </View>
-          <TouchableOpacity
+          <PressableScale
             style={styles.reportBtn}
             onPress={() => navigation.navigate('ReportQueue', { eateryId: '', eateryName: '' })}
           >
-            <Text style={styles.reportBtnText}>＋ Report</Text>
-          </TouchableOpacity>
+            <Plus size={14} color="#000" strokeWidth={3} />
+            <Text style={styles.reportBtnText}>Report</Text>
+          </PressableScale>
         </View>
 
         {/* ── Featured ── */}
@@ -211,7 +204,7 @@ export function HomeScreen() {
             <View style={styles.emptyWrap}>
               <Text style={styles.emptyText}>No eateries found nearby.</Text>
               <TouchableOpacity onPress={() => navigation.navigate('Map')}>
-                <Text style={styles.emptyLink}>Open the map →</Text>
+                <Text style={styles.emptyLink}>Open the map</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -249,8 +242,9 @@ const styles = StyleSheet.create({
   tagline:  { color: Colors.subtext, fontSize: 13, marginTop: 2 },
 
   reportBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: Colors.accent, borderRadius: 20,
-    paddingHorizontal: 16, paddingVertical: 9,
+    paddingHorizontal: 14, paddingVertical: 9,
   },
   reportBtnText: { color: '#000', fontWeight: '800', fontSize: 13 },
 

@@ -1,15 +1,20 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList,
-  TouchableOpacity, ActivityIndicator,
+  TouchableOpacity, ActivityIndicator, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { RewardedAd, RewardedAdEventType } from 'react-native-google-mobile-ads';
+import { ChevronLeft, PlayCircle } from 'lucide-react-native';
 import { supabase } from '@lib/supabase';
 import { useAuth } from '@hooks/useAuth';
 import { getRankTitle } from '@lib/gamification';
 import { ProBadge } from '@components/common/ProBadge';
+import { PressableScale } from '@components/common/PressableScale';
 import { Colors } from '@constants/colors';
+import { AD_UNITS, REWARDED_AD_POINTS } from '@constants/ads';
+import { Analytics } from '@lib/analytics';
 import { SubscriptionTier, UsernameColor, HatKey, EyewearKey, FloatItemKey, CompanionKey } from '@types/user';
 import { AvatarDisplay } from '@components/common/AvatarDisplay';
 
@@ -142,13 +147,56 @@ export function LeaderboardScreen() {
   const navigation = useNavigation<any>();
   const { user, isGuest } = useAuth();
 
-  const [entries, setEntries]       = useState<LeaderboardEntry[]>([]);
-  const [myRank, setMyRank]         = useState<number | null>(null);
-  const [loading, setLoading]       = useState(true);
+  const [entries, setEntries]         = useState<LeaderboardEntry[]>([]);
+  const [myRank, setMyRank]           = useState<number | null>(null);
+  const [loading, setLoading]         = useState(true);
+  const [adLoading, setAdLoading]     = useState(false);
+
+  const isPro = user?.subscription_tier === 'pro';
 
   useFocusEffect(
     useCallback(() => { load(); }, [user?.id]),
   );
+
+  function watchAdForPoints() {
+    if (!user || isGuest) {
+      Alert.alert('Sign in required', 'Sign in to earn points by watching ads.');
+      return;
+    }
+    setAdLoading(true);
+
+    const rewarded = RewardedAd.createForAdRequest(AD_UNITS.REWARDED, {
+      requestNonPersonalizedAdsOnly: true,
+    });
+
+    const unsubLoaded = rewarded.addAdEventListener(RewardedAdEventType.LOADED, () => {
+      rewarded.show();
+    });
+
+    const unsubEarned = rewarded.addAdEventListener(
+      RewardedAdEventType.EARNED_REWARD,
+      async () => {
+        await supabase.rpc('increment_points', {
+          user_id: user.id,
+          amount: REWARDED_AD_POINTS,
+        });
+        Analytics.track('ad_watched', { points_earned: REWARDED_AD_POINTS });
+        setAdLoading(false);
+        Alert.alert('Points earned!', `+${REWARDED_AD_POINTS} points added to your account.`);
+        load();
+        unsubLoaded();
+        unsubEarned();
+      },
+    );
+
+    rewarded.addAdEventListener('closed' as any, () => {
+      setAdLoading(false);
+      unsubLoaded();
+      unsubEarned();
+    });
+
+    rewarded.load();
+  }
 
   async function load() {
     setLoading(true);
@@ -160,7 +208,6 @@ export function LeaderboardScreen() {
         .order('points', { ascending: false })
         .limit(50),
 
-      // Current user's rank: count of users with strictly more points
       user?.id
         ? supabase
             .from('user_profiles')
@@ -204,7 +251,6 @@ export function LeaderboardScreen() {
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <>
-            {/* Podium */}
             {top3.length > 0 && (
               <View style={styles.podium}>
                 {top3.map((entry, i) => (
@@ -217,8 +263,6 @@ export function LeaderboardScreen() {
                 ))}
               </View>
             )}
-
-            {/* Divider */}
             {theRest.length > 0 && (
               <Text style={styles.restLabel}>RANKS 4 – {entries.length}</Text>
             )}
@@ -239,6 +283,24 @@ export function LeaderboardScreen() {
         }
       />
 
+      {/* Watch ad to earn points — free users only */}
+      {!isGuest && !isPro && (
+        <PressableScale
+          style={styles.watchAdBtn}
+          onPress={watchAdForPoints}
+          disabled={adLoading}
+        >
+          {adLoading ? (
+            <ActivityIndicator color={Colors.accent} size="small" />
+          ) : (
+            <>
+              <PlayCircle size={18} color={Colors.subtext} />
+              <Text style={styles.watchAdText}>Watch an ad · earn {REWARDED_AD_POINTS} pts</Text>
+            </>
+          )}
+        </PressableScale>
+      )}
+
       {/* Sticky footer: user's rank if outside top 50 */}
       {showStickyRank && (
         <View style={styles.stickyRank}>
@@ -254,11 +316,11 @@ export function LeaderboardScreen() {
 function Header({ onBack }: { onBack: () => void }) {
   return (
     <View style={styles.header}>
-      <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-        <Text style={styles.backText}>‹ Back</Text>
+      <TouchableOpacity onPress={onBack} style={styles.backBtn} hitSlop={8}>
+        <ChevronLeft size={22} color={Colors.accent} />
       </TouchableOpacity>
       <Text style={styles.headerTitle}>Leaderboard</Text>
-      <View style={{ width: 60 }} />
+      <View style={{ width: 44 }} />
     </View>
   );
 }
@@ -274,8 +336,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 12,
     borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
-  backBtn:     { width: 60 },
-  backText:    { color: Colors.accent, fontSize: 17 },
+  backBtn:     { width: 44, height: 44, alignItems: 'flex-start', justifyContent: 'center' },
   headerTitle: { fontSize: 17, fontWeight: '700', color: Colors.text },
 
   listContent: { paddingBottom: 100 },
@@ -335,6 +396,17 @@ const styles = StyleSheet.create({
   rowStreak:  { fontSize: 11, color: Colors.subtext },
 
   separator: { height: 1, backgroundColor: Colors.border },
+
+  // ── Watch ad button ──
+  watchAdBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    marginHorizontal: 16, marginBottom: 10,
+    backgroundColor: Colors.card2,
+    borderRadius: 14, paddingVertical: 13,
+    borderWidth: 1, borderColor: Colors.border,
+    minHeight: 48,
+  },
+  watchAdText: { fontSize: 13, fontWeight: '600', color: Colors.subtext },
 
   // ── Sticky footer ──
   stickyRank: {

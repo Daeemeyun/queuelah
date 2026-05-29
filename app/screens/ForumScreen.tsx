@@ -381,16 +381,18 @@ const styles = StyleSheet.create({
   },
   newBtnText: { color: '#000', fontWeight: '800', fontSize: 13 },
 
-  filterScroll: { paddingBottom: 12 },
+  filterScroll: { flexGrow: 0 },
   filterRow: {
-    flexDirection: 'row', gap: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 20, paddingRight: 20,
+    paddingVertical: 10,
   },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: Colors.card,
     borderWidth: 1, borderColor: Colors.border,
     borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7,
+    alignSelf: 'flex-start',
   },
   chipActive:    { borderColor: Colors.accent, backgroundColor: 'rgba(255,107,53,0.1)' },
   chipEmoji:     { fontSize: 13 },

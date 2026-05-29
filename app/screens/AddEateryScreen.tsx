@@ -8,6 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 
 import { supabase } from '@lib/supabase';
 import { useAuth } from '@hooks/useAuth';
+import { Analytics } from '@lib/analytics';
 import { Colors } from '@constants/colors';
 
 type EateryType = 'hawker_centre' | 'restaurant' | 'cafe' | 'food_court';
@@ -105,6 +106,7 @@ export function AddEateryScreen() {
 
       if (error) throw error;
 
+      Analytics.track('eatery_added');
       Alert.alert(
         'Place added!',
         `${name.trim()} has been submitted and will appear on the map shortly.`,

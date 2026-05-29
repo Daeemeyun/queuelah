@@ -1,0 +1,289 @@
+================================================================================
+  QUEUELAH — APP STORE LAUNCH GUIDE
+  Written for: CEO / Non-Technical Founder
+  Last updated: May 2026
+================================================================================
+
+BEFORE YOU CAN LAUNCH — MUST-FIX LIST
+──────────────────────────────────────
+These will cause App Store rejection if not done:
+
+1. PAYMENTS — The "Upgrade to Pro" button currently does nothing.
+   You need RevenueCat (recommended) or Stripe to process subscriptions.
+   RevenueCat handles all the App Store In-App Purchase rules automatically.
+   Website: revenuecat.com — free tier covers early-stage apps.
+
+2. PRIVACY POLICY — Apple requires a real, hosted privacy policy URL.
+   Use iubenda.com or termly.io to generate one in ~10 minutes.
+   Host it on your website or a free GitHub Pages page.
+
+3. TERMS OF SERVICE — Same requirement. Generate alongside privacy policy.
+
+4. AVATAR POSITIONING — Hat, eyewear, float items were positioned by estimate.
+   Test on a real iPhone to confirm they look right before submitting.
+
+5. PUSH NOTIFICATIONS — Partially set up. Need to wire up Expo push tokens
+   so notifications actually send to users.
+
+6. SEED THE DATABASE — App looks empty on first open. Add at least 20–30
+   real eateries in Singapore so new users see content immediately.
+
+
+================================================================================
+PHASE 1 — FINISH THE APP
+================================================================================
+
+Complete all items in the Must-Fix List above.
+Run the app on a physical iPhone (not simulator) and walk through every screen.
+Fix any crashes, broken buttons, or ugly layouts you find.
+
+Estimated time: 2–4 weeks depending on RevenueCat integration complexity.
+
+
+================================================================================
+PHASE 2 — APPLE DEVELOPER ACCOUNT
+================================================================================
+
+Cost:    USD $99/year (approximately SGD $135/year)
+Website: developer.apple.com/enroll
+
+Steps:
+  1. Go to developer.apple.com/enroll
+  2. Sign in with your Apple ID (or create one)
+  3. Choose "Individual" (unless registering as a company)
+  4. Pay the $99 fee
+  5. Wait 24–48 hours for Apple to approve your account
+
+You need this before you can do anything else.
+If you register as a company, Apple will verify your business — takes longer.
+
+
+================================================================================
+PHASE 3 — BUILD THE APP FILE (.ipa)
+================================================================================
+
+What is this?
+  An .ipa file is the compiled iPhone app — like a .exe for Windows but for iOS.
+  You cannot build this on your Mac directly. You use a service called EAS Build
+  (Expo Application Services) which compiles it in the cloud.
+
+Steps (your developer runs these):
+  1. Install EAS CLI:       npm install -g eas-cli
+  2. Login to Expo account: eas login
+  3. Configure the build:   eas build:configure
+  4. Start the build:       eas build --platform ios
+  5. EAS will ask for your Apple Developer credentials — enter them
+  6. Wait ~20–30 minutes for the build to complete
+  7. Download the .ipa file from the EAS dashboard
+
+Cost: EAS Build free tier gives you 30 builds/month. More than enough.
+Website: expo.dev
+
+
+================================================================================
+PHASE 4 — APP STORE CONNECT SETUP
+================================================================================
+
+App Store Connect is Apple's dashboard for managing your app listing.
+Website: appstoreconnect.apple.com
+
+Steps:
+  1. Go to appstoreconnect.apple.com and sign in
+  2. Click the "+" button to create a new app
+  3. Fill in:
+       - Platform: iOS
+       - Name: QueueLah (this is what users see on the App Store)
+       - Primary Language: English
+       - Bundle ID: (your developer will know this — it's in app.json)
+       - SKU: any unique code you make up, e.g. "queuelah-001"
+
+  4. Fill in the App Information page:
+       - Subtitle: "Skip the Queue in Singapore" (max 30 chars)
+       - Category: Food & Drink (primary) or Navigation (secondary)
+       - Privacy Policy URL: your hosted privacy policy link
+
+  5. Fill in the Description (max 4000 characters):
+       Write what the app does, who it's for, key features.
+       First few lines are most important — users see these first.
+
+  6. Keywords (max 100 characters total, comma-separated):
+       "queue,hawker,singapore,food,wait time,kopitiam,eatery"
+       Good keywords = more people find your app via search.
+
+  7. Support URL: your website or a contact email page
+
+  8. Copyright: "2026 [Your Name / Company Name]"
+
+
+================================================================================
+PHASE 5 — APP STORE ASSETS (SCREENSHOTS & ICON)
+================================================================================
+
+App Icon:
+  - Size: 1024 × 1024 pixels, PNG, no transparency, no rounded corners
+    (Apple rounds the corners automatically)
+  - Use your QueueLah logo/icon at full resolution
+
+Screenshots (mandatory):
+  Apple requires screenshots for specific iPhone sizes.
+  Required sizes:
+    - iPhone 6.9" (iPhone 16 Pro Max): 1320 × 2868 pixels
+    - iPhone 6.5" (iPhone 11 Pro Max):  1242 × 2688 pixels
+
+  You need at least 1 screenshot per size, up to 10.
+  Best practice: 4–5 screenshots showing your best features.
+
+Tips for good screenshots:
+  - Show real content (real eateries, real queue data)
+  - Add short text captions explaining each screen
+  - Use Figma or Canva to create polished mockup frames
+  - First screenshot is most important — it shows in search results
+
+Optional:
+  - App Preview Video (30 seconds max) — not required but boosts installs
+  - iPad screenshots — only needed if you support iPad
+
+
+================================================================================
+PHASE 6 — TESTFLIGHT BETA TESTING
+================================================================================
+
+What is TestFlight?
+  Apple's official beta testing platform. Real users install your app via
+  TestFlight before it goes live on the App Store. This is mandatory
+  for finding bugs before public launch.
+
+Steps:
+  1. In App Store Connect, go to your app → TestFlight tab
+  2. Upload your .ipa build (from Phase 3)
+  3. Apple runs an automated review (~1–2 days) — less strict than full review
+  4. Once approved, go to "External Testing" and add testers by email
+  5. Testers install TestFlight app on their iPhone, then install your app
+
+Who to invite:
+  - Friends, family, loyal early users
+  - Aim for 10–20 testers minimum
+  - Ask them to use every feature and report anything broken
+
+How long:
+  Run beta for at least 1–2 weeks. Fix bugs. Build a new version. Repeat.
+  You can upload new builds anytime — testers get notified automatically.
+
+
+================================================================================
+PHASE 7 — SUBMIT FOR APP STORE REVIEW
+================================================================================
+
+When your beta testing is done and bugs are fixed:
+
+Steps:
+  1. In App Store Connect, go to your app → "1.0 Prepare for Submission"
+  2. Fill in any remaining fields (all marked with orange dots must be complete)
+  3. Select your build (the .ipa you uploaded)
+  4. Click "Submit for Review"
+
+What Apple checks:
+  - Does the app crash?
+  - Does every button work?
+  - Is the privacy policy real and accessible?
+  - Are in-app purchases set up correctly? (No fake "coming soon" buttons)
+  - Does the app do what the description says?
+  - Is the content appropriate?
+
+Review time: Usually 1–3 business days. Can be faster (24hr) or slower (1 week).
+
+If rejected:
+  Apple sends an email explaining exactly why. Fix the issue, resubmit.
+  Common rejections: broken payments, missing privacy policy, crashes on review.
+  This is normal — many apps get rejected once before getting approved.
+
+
+================================================================================
+PHASE 8 — LAUNCH
+================================================================================
+
+Once Apple approves your app, you have 3 choices:
+
+  A) Release Immediately — App goes live as soon as approved (default)
+  B) Scheduled Release — You pick a specific date/time for launch
+  C) Manual Release — App sits approved but not live until you click "Release"
+
+Recommendation: Choose Manual Release so you can control exactly when
+you announce it and when it goes live. You want to announce on social media
+and release at the same time for maximum impact.
+
+Launch day checklist:
+  □ Post on social media (Instagram, TikTok, Reddit r/singapore)
+  □ Message any hawker owners or food bloggers you know
+  □ Send to all your beta testers to leave reviews
+  □ Monitor for crashes (use Sentry or Expo's built-in crash reporting)
+
+
+================================================================================
+PHASE 9 — AFTER LAUNCH
+================================================================================
+
+First week:
+  - Watch crash logs daily (Sentry.io is free to start)
+  - Respond to every App Store review, especially negative ones
+  - Fix any critical bugs and submit an update immediately
+  - App Store updates also go through review but usually approved in ~24hrs
+
+Growing the app:
+  - Ask users to rate the app (use expo-store-review to trigger the prompt)
+  - More 5-star reviews = higher ranking in App Store search
+  - Share on Reddit r/singapore, HardwareZone food forums, local food Telegram groups
+  - Reach out to local food bloggers for coverage
+
+Android (Google Play):
+  - Similar process but cheaper: one-time $25 USD fee (not yearly)
+  - Review process is faster (usually same day to 3 days)
+  - Build command: eas build --platform android
+  - You can run iOS and Android in parallel once you're ready
+
+
+================================================================================
+REALISTIC TIMELINE
+================================================================================
+
+  Week 1–2:   Fix must-fix items (payments, legal, bugs)
+  Week 3:     EAS Build + App Store Connect setup + assets
+  Week 4–5:   TestFlight beta testing, bug fixes
+  Week 6:     Submit for review → Approved → Launch
+
+Total: 4–6 weeks from "app is feature complete" to "live on App Store"
+
+The biggest wildcard is RevenueCat/payment integration.
+If payments are simple (just one Pro tier), budget 1 week for that alone.
+
+
+================================================================================
+COST SUMMARY
+================================================================================
+
+  Apple Developer Program:   $99 USD/year       (~$135 SGD)
+  EAS Build:                 Free (30 builds/month)
+  RevenueCat:                Free up to $2,500 MRR, then 1% of revenue
+  Privacy Policy generator:  Free (iubenda free tier)
+  Sentry crash monitoring:   Free up to 5,000 errors/month
+  App Store Connect:         Free (included with Developer Program)
+
+  Minimum cost to launch iOS: $99 USD
+
+
+================================================================================
+KEY CONTACTS & LINKS
+================================================================================
+
+  Apple Developer Portal:    developer.apple.com
+  App Store Connect:         appstoreconnect.apple.com
+  EAS Build (Expo):          expo.dev
+  RevenueCat:                revenuecat.com
+  Privacy Policy (iubenda):  iubenda.com
+  Crash monitoring (Sentry): sentry.io
+  TestFlight (for testers):  testflight.apple.com
+
+================================================================================
+  Questions? Ask Claude Code and reference this file.
+  "Read APP_STORE_LAUNCH_GUIDE.txt and summarise Phase 3 for me"
+================================================================================

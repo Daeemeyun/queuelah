@@ -14,50 +14,34 @@ export async function awardPointsForReport(userId: string): Promise<{
   streakBroken: boolean;
   newBadges: BadgeResult[];
 }> {
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('points, streak_days, last_report_at')
-    .eq('id', userId)
-    .single();
-
-  if (!profile) return { pointsAwarded: 0, newStreak: 0, streakBroken: false, newBadges: [] };
-
-  const now = new Date();
-  const lastReport = profile.last_report_at ? new Date(profile.last_report_at) : null;
-  const isFirstDailyReport = !lastReport ||
-    lastReport.toDateString() !== now.toDateString();
-
-  let newStreak = profile.streak_days ?? 0;
-  let streakBroken = false;
-
-  if (isFirstDailyReport) {
-    const hoursSinceLast = lastReport
-      ? (now.getTime() - lastReport.getTime()) / (1000 * 60 * 60)
-      : 0;
-    if (!lastReport || hoursSinceLast <= Config.STREAK_GRACE_HOURS) {
-      newStreak = newStreak + 1;
-    } else {
-      newStreak = 1;
-      streakBroken = true;
-    }
-  }
-
-  const pointsAwarded = Config.POINTS_REPORT + (isFirstDailyReport ? Config.POINTS_FIRST_DAILY : 0);
-  const newPoints = (profile.points ?? 0) + pointsAwarded;
-
-  await supabase.from('user_profiles').update({
-    points: newPoints,
-    streak_days: newStreak,
-    last_report_at: now.toISOString(),
-  }).eq('id', userId);
-
-  const newBadges = await checkAndAwardAllBadges(userId, {
-    newPoints,
-    newStreak,
-    isFirstDailyReport,
+  // Single atomic RPC — row is locked with SELECT … FOR UPDATE inside the
+  // function so concurrent calls queue rather than race and double-credit.
+  const { data, error } = await supabase.rpc('award_points_for_report', {
+    p_user_id:             userId,
+    p_points_report:       Config.POINTS_REPORT,
+    p_points_first_daily:  Config.POINTS_FIRST_DAILY,
+    p_streak_grace_hours:  Config.STREAK_GRACE_HOURS,
   });
 
-  return { pointsAwarded, newStreak, streakBroken, newBadges };
+  if (error || !data) {
+    console.error('award_points_for_report RPC failed:', error);
+    return { pointsAwarded: 0, newStreak: 0, streakBroken: false, newBadges: [] };
+  }
+
+  const { points_awarded, new_streak, streak_broken, new_points, is_first_daily } = data;
+
+  const newBadges = await checkAndAwardAllBadges(userId, {
+    newPoints:          new_points,
+    newStreak:          new_streak,
+    isFirstDailyReport: is_first_daily,
+  });
+
+  return {
+    pointsAwarded: points_awarded,
+    newStreak:     new_streak,
+    streakBroken:  streak_broken,
+    newBadges,
+  };
 }
 
 export async function checkAndAwardAllBadges(

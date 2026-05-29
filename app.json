@@ -27,10 +27,23 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.queuelah.app",
-      "permissions": ["NOTIFICATIONS", "RECEIVE_BOOT_COMPLETED", "VIBRATE"]
+      "permissions": [
+        "NOTIFICATIONS",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3132762702532878~8008430641",
+          "iosAppId": "ca-app-pub-3132762702532878~3460326913"
+        }
+      ]
+    ]
   }
 }

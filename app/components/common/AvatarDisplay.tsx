@@ -17,7 +17,6 @@ interface Props {
   companion?: CompanionKey | null;
 }
 
-// Frame styles — matches the existing ProfileScreen frame logic
 function frameStyle(frame?: AvatarFrame) {
   if (!frame || frame === 'none') return {};
   const colors: Record<string, string> = {
@@ -42,87 +41,82 @@ function frameStyle(frame?: AvatarFrame) {
 export function AvatarDisplay({
   size, frame, hat, eyewear, floatItem, companion,
 }: Props) {
-  const s = size; // shorthand
+  const s = size;
 
+  // Wrapper: 2.1s wide, 1.4s tall.
+  // Ring, hat, and eyewear all use alignSelf:'center' so they stay centred
+  // together. Companion and float item are anchored left:0 / right:0.
   return (
-    // Outer wrapper is oversized to give accessories room to overflow
-    <View style={{ width: s * 1.8, height: s * 1.4, alignItems: 'center', justifyContent: 'flex-end' }}>
+    <View style={{ width: s * 2.1, height: s * 1.4, alignItems: 'center', justifyContent: 'flex-end' }}>
 
-      {/* Float item — sits to the right of the character */}
-      {floatItem && FLOAT_ITEM_ASSETS[floatItem] && (
-        <Image
-          source={FLOAT_ITEM_ASSETS[floatItem]}
-          style={[styles.layer, {
-            width: s * 0.48,
-            height: s * 0.48,
-            position: 'absolute',
-            right: 0,
-            bottom: s * 0.1,
-          }]}
-          resizeMode="contain"
-        />
-      )}
-
-      {/* Companion — sits to the top-right of the character */}
+      {/* ── Companion — bottom-left, clear of avatar frame ── */}
       {companion && COMPANION_ASSETS[companion] && (
         <Image
           source={COMPANION_ASSETS[companion]}
-          style={[styles.layer, {
-            width: s * 0.38,
-            height: s * 0.38,
-            position: 'absolute',
-            right: s * 0.08,
-            bottom: s * 0.72,
+          style={[styles.abs, {
+            width:  s * 0.48,
+            height: s * 0.48,
+            left:   0,
+            bottom: s * 0.08,
           }]}
           resizeMode="contain"
         />
       )}
 
-      {/* Base character + frame */}
-      {/* Outer view carries the border/shadow; inner view clips image to circle */}
+      {/* ── Float item — bottom-right, clear of avatar frame ── */}
+      {floatItem && FLOAT_ITEM_ASSETS[floatItem] && (
+        <Image
+          source={FLOAT_ITEM_ASSETS[floatItem]}
+          style={[styles.abs, {
+            width:  s * 0.48,
+            height: s * 0.48,
+            right:  0,
+            bottom: s * 0.08,
+          }]}
+          resizeMode="contain"
+        />
+      )}
+
+      {/* ── Base character + frame ring ──
+          marginTop: s*0.045 shifts the image down so the blob's eyes
+          (canvas row 570/1254 = 45.5%) sit at the ring's visual midpoint. */}
       <View style={[{
-        width: s,
-        height: s,
+        width:        s,
+        height:       s,
         borderRadius: s / 2,
-        alignSelf: 'center',
+        alignSelf:    'center',
       }, frameStyle(frame)]}>
-        <View style={{
-          width: '100%', height: '100%',
-          borderRadius: s / 2,
-          overflow: 'hidden',
-        }}>
-          <Image
-            source={BASE_CHARACTER}
-            style={{ width: s, height: s }}
-            resizeMode="contain"
-          />
-        </View>
+        <Image
+          source={BASE_CHARACTER}
+          style={{ width: s, height: s, marginTop: s * 0.045, marginLeft: -s * 0.03 }}
+          resizeMode="contain"
+        />
       </View>
 
-      {/* Hat — sits above the character */}
+      {/* ── Hat — overflows above the ring ── */}
       {hat && HAT_ASSETS[hat] && (
         <Image
           source={HAT_ASSETS[hat]}
-          style={[styles.layer, {
-            width: s * 0.78,
-            height: s * 0.5,
-            position: 'absolute',
-            bottom: s * 0.78,
+          style={[styles.abs, {
+            width:     s * 0.78,
+            height:    s * 0.5,
+            bottom:    s * 0.80,
             alignSelf: 'center',
           }]}
           resizeMode="contain"
         />
       )}
 
-      {/* Eyewear — sits across the eye area */}
+      {/* ── Eyewear ──
+          Container 0.50s × 0.28s centred on the blob's eye oval.
+          bottom: s*0.32 tuned visually to sit on the eyes. */}
       {eyewear && EYEWEAR_ASSETS[eyewear] && (
         <Image
           source={EYEWEAR_ASSETS[eyewear]}
-          style={[styles.layer, {
-            width: s * 0.82,
-            height: s * 0.3,
-            position: 'absolute',
-            bottom: s * 0.44,
+          style={[styles.abs, {
+            width:     s * 0.50,
+            height:    s * 0.28,
+            bottom:    s * 0.32,
             alignSelf: 'center',
           }]}
           resizeMode="contain"
@@ -133,5 +127,5 @@ export function AvatarDisplay({
 }
 
 const styles = StyleSheet.create({
-  layer: { position: 'absolute' },
+  abs: { position: 'absolute' },
 });

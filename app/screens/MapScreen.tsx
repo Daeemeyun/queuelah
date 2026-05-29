@@ -7,16 +7,21 @@ import MapView, { Marker, Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Supercluster from 'supercluster';
+import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
+import { Search, X, MapPin, Plus } from 'lucide-react-native';
 
 import { useEateries } from '@hooks/useEateries';
 import { useLocation } from '@hooks/useLocation';
 import { useAllQueueStatuses } from '@hooks/useAllQueueStatuses';
+import { useAuth } from '@hooks/useAuth';
 import { MapMarker } from '@components/map/MapMarker';
 import { EateryBottomSheet } from '@components/map/EateryBottomSheet';
 import { StatusDot } from '@components/common/StatusDot';
+import { PressableScale } from '@components/common/PressableScale';
 import { queueLevelLabel, getQueueColor } from '@lib/helpers';
 import { Colors } from '@constants/colors';
 import { Config } from '@constants/config';
+import { AD_UNITS } from '@constants/ads';
 import { Eatery } from '@types/eatery';
 
 const CLUSTER_RADIUS = 50;
@@ -33,6 +38,8 @@ function regionToZoom(r: Region): number {
   return Math.round(Math.log(360 / r.longitudeDelta) / Math.LN2);
 }
 
+const BANNER_HEIGHT = 50;
+
 export function MapScreen() {
   const navigation = useNavigation<any>();
   const mapRef = useRef<MapView>(null);
@@ -40,19 +47,21 @@ export function MapScreen() {
   const { eateries, loading } = useEateries();
   const location = useLocation();
   const statuses = useAllQueueStatuses();
+  const { user } = useAuth();
+
+  const isPro = user?.subscription_tier === 'pro';
+  const adOffset = isPro ? 0 : BANNER_HEIGHT;
 
   const [selectedEatery, setSelectedEatery] = useState<Eatery | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [region, setRegion] = useState<Region>(INITIAL_REGION);
 
-  // Fast lookup by id
   const eateriesById = useMemo(
     () => Object.fromEntries(eateries.map(e => [e.id, e])),
     [eateries],
   );
 
-  // Search-filtered eateries (used when search is active)
   const filteredEateries = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return eateries;
@@ -63,7 +72,6 @@ export function MapScreen() {
     );
   }, [eateries, searchQuery]);
 
-  // Supercluster index — rebuilt only when eatery list changes
   const supercluster = useMemo(() => {
     const sc = new Supercluster<{ id: string }>({
       radius: CLUSTER_RADIUS,
@@ -79,7 +87,6 @@ export function MapScreen() {
     return sc;
   }, [eateries]);
 
-  // Visible clusters for the current viewport
   const clusters = useMemo(() => {
     const zoom = regionToZoom(region);
     const bounds: [number, number, number, number] = [
@@ -136,7 +143,6 @@ export function MapScreen() {
         customMapStyle={darkMapStyle}
       >
         {isSearching ? (
-          // Search mode — show individual filtered results, no clustering
           filteredEateries.map(eatery => (
             <MapMarker
               key={eatery.id}
@@ -146,7 +152,6 @@ export function MapScreen() {
             />
           ))
         ) : (
-          // Normal mode — render clusters or individual pins
           clusters.map(point => {
             const [lng, lat] = point.geometry.coordinates;
             const coordinate = { latitude: lat, longitude: lng };
@@ -184,7 +189,7 @@ export function MapScreen() {
       <SafeAreaView style={styles.topOverlay} edges={['top']}>
         <View style={styles.searchWrap}>
           <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
-            <Text style={styles.searchIcon}>🔍</Text>
+            <Search size={15} color={Colors.subtext} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search hawker centres, cafes..."
@@ -196,8 +201,8 @@ export function MapScreen() {
               returnKeyType="search"
             />
             {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Text style={styles.clearBtn}>✕</Text>
+              <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={8}>
+                <X size={15} color={Colors.subtext} />
               </TouchableOpacity>
             )}
           </View>
@@ -253,7 +258,7 @@ export function MapScreen() {
       )}
 
       {/* Map legend */}
-      <View style={styles.legend}>
+      <View style={[styles.legend, { bottom: 160 + adOffset }]}>
         {[
           { color: Colors.queueShort,  label: 'Short' },
           { color: Colors.queueMedium, label: 'Medium' },
@@ -269,24 +274,24 @@ export function MapScreen() {
 
       {/* Location button */}
       {location.granted && (
-        <TouchableOpacity style={styles.locationBtn} onPress={centreOnUser}>
-          <Text style={styles.locationBtnText}>📍</Text>
+        <TouchableOpacity style={[styles.locationBtn, { bottom: 160 + adOffset }]} onPress={centreOnUser}>
+          <MapPin size={20} color={Colors.accent} />
         </TouchableOpacity>
       )}
 
       {/* Add a Place button */}
       <TouchableOpacity
-        style={styles.addPlaceBtn}
+        style={[styles.addPlaceBtn, { bottom: 80 + adOffset }]}
         onPress={() => navigation.navigate('AddEatery')}
       >
-        <Text style={styles.addPlaceBtnText}>＋ Add a Place</Text>
+        <Plus size={13} color={Colors.subtext} />
+        <Text style={styles.addPlaceBtnText}>Add a Place</Text>
       </TouchableOpacity>
 
       {/* Report FAB */}
-      <View style={styles.fabWrap}>
-        <TouchableOpacity
+      <View style={[styles.fabWrap, { bottom: 24 + adOffset }]}>
+        <PressableScale
           style={styles.fab}
-          activeOpacity={0.85}
           onPress={() =>
             navigation.navigate('ReportQueue', {
               eateryId: selectedEatery?.id ?? '',
@@ -294,8 +299,9 @@ export function MapScreen() {
             })
           }
         >
-          <Text style={styles.fabText}>＋ Report a Queue</Text>
-        </TouchableOpacity>
+          <Plus size={18} color="#000" strokeWidth={3} />
+          <Text style={styles.fabText}>Report Queue</Text>
+        </PressableScale>
       </View>
 
       {/* Bottom sheet for selected eatery */}
@@ -315,11 +321,21 @@ export function MapScreen() {
           setSelectedEatery(null);
         }}
       />
+
+      {/* Banner ad — only shown to free users */}
+      {!isPro && (
+        <View style={styles.bannerWrap}>
+          <BannerAd
+            unitId={AD_UNITS.BANNER}
+            size={BannerAdSize.BANNER}
+            requestOptions={{ requestNonPersonalizedAdsOnly: true }}
+          />
+        </View>
+      )}
     </View>
   );
 }
 
-// Cluster bubble marker
 function ClusterBubble({ count }: { count: number }) {
   return (
     <View style={cluster.wrap}>
@@ -331,7 +347,6 @@ function ClusterBubble({ count }: { count: number }) {
   );
 }
 
-// Dark map style matching the app theme
 const darkMapStyle = [
   { elementType: 'geometry', stylers: [{ color: '#1a1a2e' }] },
   { elementType: 'labels.text.fill', stylers: [{ color: '#8E8E93' }] },
@@ -362,9 +377,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 }, elevation: 8,
   },
   searchBarFocused: { borderColor: Colors.accent },
-  searchIcon: { fontSize: 15 },
   searchInput: { flex: 1, color: Colors.text, fontSize: 14 },
-  clearBtn: { color: Colors.subtext, fontSize: 14, padding: 2 },
   searchResults: {
     backgroundColor: 'rgba(22,22,30,0.98)',
     borderWidth: 1, borderColor: Colors.border,
@@ -393,8 +406,14 @@ const styles = StyleSheet.create({
   },
   loadingText: { fontSize: 12, color: Colors.subtext },
 
+  bannerWrap: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+  },
+
   legend: {
-    position: 'absolute', bottom: 160, left: 12,
+    position: 'absolute', left: 12,
     backgroundColor: 'rgba(22,22,30,0.95)',
     borderRadius: 12, padding: 10, gap: 5,
     borderWidth: 1, borderColor: Colors.border,
@@ -404,28 +423,27 @@ const styles = StyleSheet.create({
   legendLabel: { fontSize: 10, color: Colors.subtext },
 
   locationBtn: {
-    position: 'absolute', bottom: 160, right: 12,
+    position: 'absolute', right: 12,
     backgroundColor: 'rgba(22,22,30,0.95)',
     borderRadius: 12, width: 44, height: 44,
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: Colors.border,
   },
-  locationBtnText: { fontSize: 20 },
 
-  // Add a Place — sits above the FAB
   addPlaceBtn: {
-    position: 'absolute', bottom: 80, alignSelf: 'center',
+    position: 'absolute', alignSelf: 'center',
+    flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: Colors.card2,
-    borderRadius: 20, paddingHorizontal: 18, paddingVertical: 10,
+    borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10,
     borderWidth: 1, borderColor: Colors.border,
   },
   addPlaceBtnText: { color: Colors.subtext, fontWeight: '600', fontSize: 13 },
 
-  fabWrap: { position: 'absolute', bottom: 24, left: 12, right: 12 },
+  fabWrap: { position: 'absolute', left: 12, right: 12 },
   fab: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: Colors.accent,
     borderRadius: 16, paddingVertical: 16,
-    alignItems: 'center',
     shadowColor: Colors.accent,
     shadowOpacity: 0.4, shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 }, elevation: 8,

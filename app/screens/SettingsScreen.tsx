@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -82,11 +83,11 @@ export function SettingsScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>‹ Back</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={8}>
+          <ChevronLeft size={22} color={Colors.accent} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>
-        <View style={{ width: 60 }} />
+        <View style={{ width: 44 }} />
       </View>
 
       <ScrollView
@@ -140,12 +141,12 @@ export function SettingsScreen() {
               <View style={styles.divider} />
               <TouchableOpacity style={styles.row} onPress={handleChangePassword}>
                 <Text style={styles.rowLabel}>Change Password</Text>
-                <Text style={styles.rowChevron}>›</Text>
+                <ChevronRight size={18} color={Colors.subtext} />
               </TouchableOpacity>
               <View style={styles.divider} />
               <TouchableOpacity style={styles.row} onPress={handleSignOut}>
                 <Text style={[styles.rowLabel, styles.destructive]}>Sign Out</Text>
-                <Text style={styles.rowChevron}>›</Text>
+                <ChevronRight size={18} color={Colors.subtext} />
               </TouchableOpacity>
             </View>
           </>
@@ -161,18 +162,18 @@ export function SettingsScreen() {
           <View style={styles.divider} />
           <TouchableOpacity
             style={styles.row}
-            onPress={() => Alert.alert('Privacy Policy', 'Full privacy policy coming soon.')}
+            onPress={() => Linking.openURL('https://www.iubenda.com/privacy-policy/queuelah')}
           >
             <Text style={styles.rowLabel}>Privacy Policy</Text>
-            <Text style={styles.rowChevron}>›</Text>
+            <ChevronRight size={18} color={Colors.subtext} />
           </TouchableOpacity>
           <View style={styles.divider} />
           <TouchableOpacity
             style={styles.row}
-            onPress={() => Alert.alert('Terms of Service', 'Full terms of service coming soon.')}
+            onPress={() => Linking.openURL('https://www.iubenda.com/terms-and-conditions/queuelah')}
           >
             <Text style={styles.rowLabel}>Terms of Service</Text>
-            <Text style={styles.rowChevron}>›</Text>
+            <ChevronRight size={18} color={Colors.subtext} />
           </TouchableOpacity>
         </View>
 
@@ -192,8 +193,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 12,
     borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
-  backBtn:     { width: 60 },
-  backText:    { color: Colors.accent, fontSize: 17 },
+  backBtn:     { width: 44, height: 44, alignItems: 'flex-start', justifyContent: 'center' },
   headerTitle: { fontSize: 17, fontWeight: '700', color: Colors.text },
 
   content: { padding: 16, gap: 8 },
@@ -218,8 +218,7 @@ const styles = StyleSheet.create({
   rowLeft:    { flex: 1, gap: 2 },
   rowLabel:   { fontSize: 15, color: Colors.text },
   rowSub:     { fontSize: 12, color: Colors.subtext },
-  rowValue:   { fontSize: 14, color: Colors.subtext, flexShrink: 1, textAlign: 'right' },
-  rowChevron: { fontSize: 20, color: Colors.subtext },
-  statusDot:  { width: 10, height: 10, borderRadius: 5 },
+  rowValue:  { fontSize: 14, color: Colors.subtext, flexShrink: 1, textAlign: 'right' },
+  statusDot: { width: 10, height: 10, borderRadius: 5 },
   destructive: { color: '#FF3B30' },
 });

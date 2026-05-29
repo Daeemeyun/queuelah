@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
-import React, { useEffect, useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useEffect, useRef, useState } from 'react';
+import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
@@ -12,6 +12,12 @@ import { useAuth } from '@hooks/useAuth';
 import { useEateryStore } from '@store/eateryStore';
 import { useNotifications } from '@hooks/useNotifications';
 import { Colors } from '@constants/colors';
+import { Analytics } from '@lib/analytics';
+import { initialiseSentry } from '@lib/errorReporting';
+import { ErrorBoundary } from '@components/common/ErrorBoundary';
+
+// Initialise Sentry as early as possible (before any component renders)
+initialiseSentry();
 
 import { HomeScreen }         from '@screens/HomeScreen';
 import { MapScreen }          from '@screens/MapScreen';
@@ -67,18 +73,34 @@ export default function App() {
   const { isLoading } = useAuth();
   const { loadFavourites } = useEateryStore();
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
+  const navigationRef = useRef<NavigationContainerRef<any>>(null);
+  const routeNameRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     // Load persisted favourites and onboarding state on startup
     AsyncStorage.getItem('onboarding_done').then(val => setOnboardingDone(val === 'true'));
     loadFavourites();
+    Analytics.track('app_open');
   }, []);
 
   if (isLoading || onboardingDone === null) return <LoadingSpinner />;
 
   return (
+    <ErrorBoundary>
     <SafeAreaProvider>
-      <NavigationContainer>
+      <NavigationContainer
+        ref={navigationRef}
+        onReady={() => {
+          routeNameRef.current = navigationRef.current?.getCurrentRoute()?.name;
+        }}
+        onStateChange={() => {
+          const current = navigationRef.current?.getCurrentRoute()?.name;
+          if (current && current !== routeNameRef.current) {
+            Analytics.track('screen_view', { screen: current });
+            routeNameRef.current = current;
+          }
+        }}
+      >
         <StatusBar style="light" />
         <Stack.Navigator
           screenOptions={{ headerShown: false }}
@@ -99,5 +121,6 @@ export default function App() {
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
