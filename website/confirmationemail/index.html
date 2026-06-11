@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QueueLah — Email Confirmed</title>
+  <meta name="robots" content="noindex" />
+  <link rel="stylesheet" href="../styles.css" />
+  <style>
+    .confirm-wrap {
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center;
+      padding: 40px 24px;
+    }
+    .badge-circle {
+      width: 96px; height: 96px; border-radius: 50%;
+      background: rgba(255,101,0,0.12); display: grid; place-items: center;
+      margin-bottom: 28px;
+      /* enter from a visible shape, never scale(0) */
+      opacity: 0; transform: scale(0.92);
+      animation: pop 520ms var(--ease-out) 80ms forwards;
+    }
+    .badge-circle svg { width: 50px; height: 50px; }
+    .check { stroke-dasharray: 30; stroke-dashoffset: 30; animation: draw 460ms var(--ease-out) 360ms forwards; }
+    .confirm-wrap h1 { font-size: 27px; margin: 0 0 12px; opacity: 0; animation: rise 520ms var(--ease-out) 200ms forwards; }
+    .confirm-wrap p { color: var(--text-soft); max-width: 380px; margin: 0 0 8px; opacity: 0; animation: rise 520ms var(--ease-out) 280ms forwards; }
+    .confirm-wrap .cta { margin-top: 30px; opacity: 0; animation: rise 520ms var(--ease-out) 380ms forwards; }
+    .hint { font-size: 13px; color: var(--text-mute); margin-top: 18px; opacity: 0; animation: rise 520ms var(--ease-out) 460ms forwards; }
+    .foot { margin-top: 46px; font-size: 12px; color: var(--text-faint); }
+
+    @keyframes pop  { to { opacity: 1; transform: scale(1); } }
+    @keyframes rise { to { opacity: 1; transform: translateY(0); } }
+    .confirm-wrap h1, .confirm-wrap p, .confirm-wrap .cta, .hint { transform: translateY(10px); }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .badge-circle, .confirm-wrap h1, .confirm-wrap p, .confirm-wrap .cta, .hint {
+        opacity: 1 !important; transform: none !important; animation: none !important;
+      }
+      .check { stroke-dashoffset: 0 !important; animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="confirm-wrap">
+    <div class="badge-circle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#FF6500" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path class="check" d="M20 6 9 17l-5-5" />
+      </svg>
+    </div>
+    <h1>You're all set! 🎉</h1>
+    <p>Your email has been confirmed. Your <span class="accent" style="font-weight:600">QueueLah</span> account is now active.</p>
+    <p>Head back to the app and log in to start checking queues and earning points.</p>
+    <a class="btn btn-primary cta" href="queuelah://">Open QueueLah</a>
+    <p class="hint">If the button doesn't open the app, just switch back to QueueLah manually and log in.</p>
+    <div class="foot">QueueLah © 2026 · Queue less. Eat more.</div>
+  </div>
+</body>
+</html>

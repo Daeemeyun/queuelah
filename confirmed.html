@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QueueLah — Email Confirmed</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1C1C28;
+      color: #ffffff;
+    }
+    .wrap {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px 24px;
+      box-sizing: border-box;
+    }
+    .badge {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      background: rgba(255, 101, 0, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+    .badge svg { width: 52px; height: 52px; }
+    h1 { font-size: 26px; margin: 0 0 12px; font-weight: 700; }
+    p { font-size: 16px; line-height: 1.6; color: #B8B8C4; max-width: 380px; margin: 0 0 8px; }
+    .accent { color: #FF6500; font-weight: 600; }
+    .cta {
+      margin-top: 32px;
+      display: inline-block;
+      background: #FF6500;
+      color: #ffffff;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 600;
+      padding: 14px 32px;
+      border-radius: 12px;
+    }
+    .hint { margin-top: 20px; font-size: 13px; color: #6E6E80; }
+    .footer { margin-top: 48px; font-size: 12px; color: #4A4A5A; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#FF6500" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 6 9 17l-5-5" />
+      </svg>
+    </div>
+    <h1>You're all set! 🎉</h1>
+    <p>Your email has been confirmed. Your <span class="accent">QueueLah</span> account is now active.</p>
+    <p>Head back to the app and log in to start checking queues and earning points.</p>
+    <a class="cta" href="queuelah://">Open QueueLah</a>
+    <p class="hint">If the button doesn't open the app, just switch back to QueueLah manually and log in.</p>
+    <div class="footer">QueueLah &copy; 2026 &middot; Queue less. Eat more.</div>
+  </div>
+</body>
+</html>

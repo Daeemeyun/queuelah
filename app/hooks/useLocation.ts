@@ -24,13 +24,18 @@ export function useLocation() {
         setLocation((l) => ({ ...l, granted: false, loading: false }));
         return;
       }
-      const pos = await Location.getCurrentPositionAsync({});
-      setLocation({
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude,
-        granted: true,
-        loading: false,
-      });
+      try {
+        const pos = await Location.getCurrentPositionAsync({});
+        setLocation({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          granted: true,
+          loading: false,
+        });
+      } catch {
+        // Simulator or location unavailable — fall back to Singapore CBD default
+        setLocation((l) => ({ ...l, granted: true, loading: false }));
+      }
     })();
   }, []);
 

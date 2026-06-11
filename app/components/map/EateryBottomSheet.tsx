@@ -6,7 +6,9 @@ import {
 import { Eatery } from '@types/eatery';
 import { QueueStatus } from '@types/queue';
 import { Colors } from '@constants/colors';
-import { queueLevelLabel, getQueueColor, getFreshnessLabel } from '@lib/helpers';
+import { getFreshnessLabel } from '@lib/helpers';
+import { resolveQueueDisplay } from '@lib/busyness';
+import { EstimateBadge } from '@components/common/EstimateBadge';
 import { StatusDot } from '@components/common/StatusDot';
 
 interface Props {
@@ -20,8 +22,10 @@ interface Props {
 export function EateryBottomSheet({ eatery, status, onClose, onReport, onViewDetail }: Props) {
   if (!eatery) return null;
 
-  const level = status?.level ?? 'no_data';
-  const queueColor = getQueueColor(level);
+  const display = resolveQueueDisplay(eatery, status);
+  const level = display.level;
+  const queueColor = display.color;
+  const isEstimated = display.source === 'estimated';
 
   return (
     <Modal
@@ -55,35 +59,40 @@ export function EateryBottomSheet({ eatery, status, onClose, onReport, onViewDet
             <View style={styles.statusLeft}>
               <StatusDot level={level} size={12} />
               <Text style={[styles.statusText, { color: queueColor }]}>
-                {queueLevelLabel(level)}
+                {display.label}
               </Text>
+              <EstimateBadge source={display.source} />
             </View>
-            {status?.latest_report_at && (
+            {display.source === 'live' && display.latestReportAt && (
               <Text style={styles.freshness}>
-                🕐 {getFreshnessLabel(status.latest_report_at)}
+                🕐 {getFreshnessLabel(display.latestReportAt)}
               </Text>
             )}
           </View>
 
-          {/* Freshness bar */}
-          <View style={styles.freshnessBarBg}>
-            <View style={[
-              styles.freshnessBarFill,
-              {
-                width: `${status?.freshness_percent ?? 0}%` as any,
-                backgroundColor: queueColor,
-              }
-            ]} />
-          </View>
+          {/* Freshness bar — live reports only */}
+          {display.source === 'live' && (
+            <View style={styles.freshnessBarBg}>
+              <View style={[
+                styles.freshnessBarFill,
+                {
+                  width: `${display.freshnessPercent ?? 0}%` as any,
+                  backgroundColor: queueColor,
+                }
+              ]} />
+            </View>
+          )}
 
           <View style={styles.statusMeta}>
-            {status?.estimated_minutes ? (
+            {display.source === 'estimated' ? (
+              <Text style={styles.metaText}>{display.note}</Text>
+            ) : display.estimatedMinutes ? (
               <Text style={styles.metaText}>
-                ~{Math.round(status.estimated_minutes)} min wait
+                ~{Math.round(display.estimatedMinutes)} min wait
               </Text>
             ) : (
               <Text style={styles.metaText}>
-                {status ? `${status.report_count} report${status.report_count !== 1 ? 's' : ''}` : 'No recent reports'}
+                {display.reportCount != null ? `${display.reportCount} report${display.reportCount !== 1 ? 's' : ''}` : 'No recent reports'}
               </Text>
             )}
             {eatery.opening_hours && (

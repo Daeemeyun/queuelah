@@ -55,11 +55,13 @@ function PostCard({
   post,
   onUpvote,
   onReport,
+  onDelete,
   currentUserId,
 }: {
   post: ForumPost;
   onUpvote: (post: ForumPost) => void;
   onReport: (post: ForumPost) => void;
+  onDelete: (post: ForumPost) => void;
   currentUserId?: string;
 }) {
   const cat = CATEGORIES[post.category];
@@ -102,7 +104,11 @@ function PostCard({
           </Text>
         </TouchableOpacity>
 
-        {!isOwn && (
+        {isOwn ? (
+          <TouchableOpacity style={card.reportBtn} onPress={() => onDelete(post)}>
+            <Text style={card.deleteText}>Delete</Text>
+          </TouchableOpacity>
+        ) : (
           <TouchableOpacity style={card.reportBtn} onPress={() => onReport(post)}>
             <Text style={card.reportText}>Report</Text>
           </TouchableOpacity>
@@ -161,7 +167,23 @@ export function ForumScreen() {
       query = query.eq('category', filter);
     }
 
-    const { data, error } = await query;
+    let { data, error } = await query;
+
+    // Resilience: if the author embed fails for any reason (e.g. a FK /
+    // relationship issue), fall back to a plain select so the forum still
+    // renders posts instead of silently showing "No posts yet".
+    if (error) {
+      console.warn('[forum] embed query failed, falling back to plain select:', error?.message);
+      let plain = supabase
+        .from('forum_posts')
+        .select('id, user_id, category, title, body, upvotes, created_at')
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (filter !== ALL_FILTER) plain = plain.eq('category', filter);
+      const res = await plain;
+      data = res.data;
+      error = res.error;
+    }
     if (error || !data) return;
 
     // Fetch which posts the current user has upvoted
@@ -256,6 +278,38 @@ export function ForumScreen() {
     );
   }
 
+  async function handleDelete(post: ForumPost) {
+    if (!user?.id || post.user_id !== user.id) return;
+
+    Alert.alert(
+      'Delete Post',
+      'Take down your post? This permanently removes it for everyone and can\'t be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            // Optimistically remove from the list
+            const prev = posts;
+            setPosts(curr => curr.filter(p => p.id !== post.id));
+
+            const { error } = await supabase
+              .from('forum_posts')
+              .delete()
+              .eq('id', post.id)
+              .eq('user_id', user.id); // belt-and-suspenders; RLS also enforces this
+
+            if (error) {
+              setPosts(prev); // restore on failure
+              Alert.alert('Could not delete', 'Something went wrong. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  }
+
   const filteredPosts = filter === ALL_FILTER
     ? posts
     : posts.filter(p => p.category === filter);
@@ -337,6 +391,7 @@ export function ForumScreen() {
               post={item}
               onUpvote={handleUpvote}
               onReport={handleReport}
+              onDelete={handleDelete}
               currentUserId={user?.id}
             />
           )}
@@ -443,6 +498,7 @@ const card = StyleSheet.create({
 
   reportBtn:  { paddingHorizontal: 10, paddingVertical: 6 },
   reportText: { color: Colors.subtext, fontSize: 12, opacity: 0.6 },
+  deleteText: { color: '#FF3B30', fontSize: 12, fontWeight: '600', opacity: 0.85 },
 });
 
 const gate = StyleSheet.create({

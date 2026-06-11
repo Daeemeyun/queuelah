@@ -5,7 +5,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
 import { Text } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useAuth } from '@hooks/useAuth';
@@ -15,9 +15,16 @@ import { Colors } from '@constants/colors';
 import { Analytics } from '@lib/analytics';
 import { initialiseSentry } from '@lib/errorReporting';
 import { ErrorBoundary } from '@components/common/ErrorBoundary';
+import mobileAds from 'react-native-google-mobile-ads';
 
 // Initialise Sentry as early as possible (before any component renders)
 initialiseSentry();
+
+// Initialise Google Mobile Ads SDK — required before any ad request.
+// Without this call, banner/rewarded ads never load.
+mobileAds()
+  .initialize()
+  .catch(() => { /* ads must never crash the app */ });
 
 import { HomeScreen }         from '@screens/HomeScreen';
 import { MapScreen }          from '@screens/MapScreen';
@@ -43,7 +50,15 @@ const Tab   = createBottomTabNavigator();
 
 function MainTabs() {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   useNotifications(user?.id, user?.streak_days);
+
+  // Lift the bar above the home indicator (insets.bottom ≈ 34 on Face ID iPhones,
+  // 0 on older devices) and give icons/labels more room. The +10 keeps a little
+  // breathing space above the indicator so taps don't crowd the screen edge.
+  const bottomInset = insets.bottom;
+  const ICON_SIZE = 26;
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -51,20 +66,22 @@ function MainTabs() {
         tabBarStyle: {
           backgroundColor: Colors.card,
           borderTopColor: Colors.border,
-          paddingBottom: 8,
-          height: 60,
+          height: 64 + bottomInset,
+          paddingTop: 8,
+          paddingBottom: bottomInset + 10,
         },
         tabBarActiveTintColor: Colors.accent,
         tabBarInactiveTintColor: Colors.subtext,
-        tabBarLabelStyle: { fontSize: 10, marginBottom: 2 },
+        tabBarLabelStyle: { fontSize: 11, marginBottom: 2 },
+        tabBarIconStyle: { marginTop: 2 },
       }}
     >
-      <Tab.Screen name="Home"       component={HomeScreen}       options={{ tabBarLabel: 'Home',    tabBarIcon: () => <Text style={{ fontSize: 20 }}>🏠</Text> }} />
-      <Tab.Screen name="Map"        component={MapScreen}        options={{ tabBarLabel: 'Map',     tabBarIcon: () => <Text style={{ fontSize: 20 }}>🗺️</Text> }} />
-      <Tab.Screen name="Favourites" component={FavouritesScreen} options={{ tabBarLabel: 'Saved',   tabBarIcon: () => <Text style={{ fontSize: 20 }}>⭐</Text> }} />
-      <Tab.Screen name="History"    component={HistoryScreen}    options={{ tabBarLabel: 'History', tabBarIcon: () => <Text style={{ fontSize: 20 }}>🕐</Text> }} />
-      <Tab.Screen name="Forum"      component={ForumScreen}      options={{ tabBarLabel: 'Forum',   tabBarIcon: () => <Text style={{ fontSize: 20 }}>💬</Text> }} />
-      <Tab.Screen name="Profile"    component={ProfileScreen}    options={{ tabBarLabel: 'Profile', tabBarIcon: () => <Text style={{ fontSize: 20 }}>👤</Text> }} />
+      <Tab.Screen name="Home"       component={HomeScreen}       options={{ tabBarLabel: 'Home',    tabBarIcon: () => <Text style={{ fontSize: ICON_SIZE }}>🏠</Text> }} />
+      <Tab.Screen name="Map"        component={MapScreen}        options={{ tabBarLabel: 'Map',     tabBarIcon: () => <Text style={{ fontSize: ICON_SIZE }}>🗺️</Text> }} />
+      <Tab.Screen name="Favourites" component={FavouritesScreen} options={{ tabBarLabel: 'Saved',   tabBarIcon: () => <Text style={{ fontSize: ICON_SIZE }}>⭐</Text> }} />
+      <Tab.Screen name="History"    component={HistoryScreen}    options={{ tabBarLabel: 'History', tabBarIcon: () => <Text style={{ fontSize: ICON_SIZE }}>🕐</Text> }} />
+      <Tab.Screen name="Forum"      component={ForumScreen}      options={{ tabBarLabel: 'Forum',   tabBarIcon: () => <Text style={{ fontSize: ICON_SIZE }}>💬</Text> }} />
+      <Tab.Screen name="Profile"    component={ProfileScreen}    options={{ tabBarLabel: 'Profile', tabBarIcon: () => <Text style={{ fontSize: ICON_SIZE }}>👤</Text> }} />
     </Tab.Navigator>
   );
 }

@@ -13,7 +13,8 @@ import { useLocation } from '@hooks/useLocation';
 import { useAuth } from '@hooks/useAuth';
 import { PressableScale } from '@components/common/PressableScale';
 import { distanceKm, formatDistance } from '@lib/maps';
-import { getQueueColor, queueLevelLabel } from '@lib/helpers';
+import { resolveQueueDisplay } from '@lib/busyness';
+import { EstimateBadge } from '@components/common/EstimateBadge';
 import { Colors } from '@constants/colors';
 import { Eatery } from '@types/eatery';
 import { QueueStatus } from '@types/queue';
@@ -41,18 +42,20 @@ function eateryTypeLabel(type: string): string {
 function FeaturedCard({
   eatery, status, onPress,
 }: { eatery: Eatery; status?: QueueStatus; onPress: () => void }) {
-  const level = status?.level ?? 'no_data';
-  const color = getQueueColor(level);
-  const label = queueLevelLabel(level);
+  const display = resolveQueueDisplay(eatery, status);
+  const color = display.color;
 
   return (
     <TouchableOpacity style={featuredCard.wrap} activeOpacity={0.8} onPress={onPress}>
       <View style={[featuredCard.bar, { backgroundColor: color }]} />
       <View style={featuredCard.body}>
         <View style={featuredCard.topRow}>
-          <View style={[featuredCard.badge, { backgroundColor: color + '22' }]}>
-            <View style={[featuredCard.dot, { backgroundColor: color }]} />
-            <Text style={[featuredCard.badgeText, { color }]}>{label}</Text>
+          <View style={featuredCard.badgeGroup}>
+            <View style={[featuredCard.badge, { backgroundColor: color + '22' }]}>
+              <View style={[featuredCard.dot, { backgroundColor: color }]} />
+              <Text style={[featuredCard.badgeText, { color }]}>{display.label}</Text>
+            </View>
+            <EstimateBadge source={display.source} />
           </View>
           <View style={featuredCard.sponsoredTag}>
             <Text style={featuredCard.sponsoredText}>Featured</Text>
@@ -60,8 +63,8 @@ function FeaturedCard({
         </View>
         <Text style={featuredCard.name} numberOfLines={2}>{eatery.name}</Text>
         <Text style={featuredCard.type}>{eateryTypeLabel(eatery.type)}</Text>
-        {status?.estimated_minutes != null && (
-          <Text style={featuredCard.wait}>~{Math.round(status.estimated_minutes)} min wait</Text>
+        {display.source === 'live' && display.estimatedMinutes != null && (
+          <Text style={featuredCard.wait}>~{Math.round(display.estimatedMinutes)} min wait</Text>
         )}
       </View>
     </TouchableOpacity>
@@ -78,9 +81,8 @@ function NearMeRow({
   distLabel: string;
   onPress: () => void;
 }) {
-  const level = status?.level ?? 'no_data';
-  const color = getQueueColor(level);
-  const label = queueLevelLabel(level);
+  const display = resolveQueueDisplay(eatery, status);
+  const color = display.color;
 
   return (
     <TouchableOpacity style={nearRow.wrap} activeOpacity={0.75} onPress={onPress}>
@@ -94,11 +96,13 @@ function NearMeRow({
         </View>
         <View style={nearRow.right}>
           <View style={[nearRow.pill, { backgroundColor: color + '22', borderColor: color + '55' }]}>
-            <Text style={[nearRow.pillText, { color }]}>{label}</Text>
+            <Text style={[nearRow.pillText, { color }]}>{display.shortLabel}</Text>
           </View>
-          {status?.estimated_minutes != null && (
-            <Text style={nearRow.wait}>~{Math.round(status.estimated_minutes)}m</Text>
-          )}
+          {display.source === 'estimated'
+            ? <EstimateBadge source={display.source} size="xs" />
+            : display.estimatedMinutes != null && (
+              <Text style={nearRow.wait}>~{Math.round(display.estimatedMinutes)}m</Text>
+            )}
         </View>
       </View>
     </TouchableOpacity>
@@ -276,6 +280,7 @@ const featuredCard = StyleSheet.create({
   bar: { height: 4, width: '100%' },
   body: { padding: 14, gap: 6 },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  badgeGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   badge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     borderRadius: 20, paddingHorizontal: 8, paddingVertical: 4,

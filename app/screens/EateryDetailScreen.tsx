@@ -17,11 +17,13 @@ import { useAuth } from '@hooks/useAuth';
 import { useReviews } from '@hooks/useReviews';
 import { useTrends, TrendDay } from '@hooks/useTrends';
 import { StatusDot } from '@components/common/StatusDot';
+import { EstimateBadge } from '@components/common/EstimateBadge';
 import { Colors } from '@constants/colors';
 import {
   queueLevelLabel, getQueueColor,
   getFreshnessLabel, getFreshnessPercent,
 } from '@lib/helpers';
+import { resolveQueueDisplay, busynessCurveForDay, singaporeParts } from '@lib/busyness';
 import { QueueLevel } from '@types/queue';
 import { Analytics } from '@lib/analytics';
 
@@ -94,6 +96,64 @@ const tc = StyleSheet.create({
   labelText: { fontSize: 9, color: Colors.subtext },
 });
 
+function estColor(intensity: number): string {
+  if (intensity < 0.30) return Colors.queueShort;
+  if (intensity < 0.62) return Colors.queueMedium;
+  return Colors.queueLong;
+}
+
+const WEEKDAY_LABEL = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/** Heuristic "typical busyness" bars shown when there isn't enough real data yet. */
+function EstimateBars({ type }: { type: any }) {
+  const screenW = Dimensions.get('window').width;
+  const barW = Math.floor((screenW - 64) / CHART_HOURS.length) - 2;
+  const { day, hour } = singaporeParts(new Date());
+  const curve = busynessCurveForDay(type, day);
+  const nowHour = Math.round(hour);
+
+  return (
+    <View style={styles.estCard}>
+      <View style={styles.estHeader}>
+        <Text style={styles.estTitle}>Estimated · typical for {WEEKDAY_LABEL[day]}</Text>
+        <EstimateBadge source="estimated" />
+      </View>
+      <View style={tc.wrapper}>
+        <View style={tc.barsRow}>
+          {CHART_HOURS.map(h => {
+            const v = curve[h];
+            const height = Math.max(3, Math.round(v * CHART_MAX_H));
+            const isNow = h === nowHour;
+            return (
+              <View key={h} style={[tc.barCol, { width: barW }]}>
+                <View style={tc.barBg}>
+                  <View style={[
+                    tc.barFill,
+                    { height, backgroundColor: estColor(v), opacity: isNow ? 1 : 0.55 },
+                    isNow && { borderWidth: 1, borderColor: '#fff' },
+                  ]} />
+                </View>
+              </View>
+            );
+          })}
+        </View>
+        <View style={tc.labelsRow}>
+          {CHART_HOURS.map(h => (
+            <View key={h} style={[tc.labelCol, { width: barW }]}>
+              {h % 3 === 1 && (
+                <Text style={tc.labelText}>{h > 12 ? `${h - 12}p` : h === 12 ? '12p' : `${h}a`}</Text>
+              )}
+            </View>
+          ))}
+        </View>
+      </View>
+      <Text style={styles.estNote}>
+        Based on typical meal-time patterns — report a queue to make this eatery live!
+      </Text>
+    </View>
+  );
+}
+
 function Stars({ value, size = 14 }: { value: number; size?: number }) {
   return (
     <View style={{ flexDirection: 'row', gap: 1 }}>
@@ -144,8 +204,9 @@ export function EateryDetailScreen() {
     );
   }
 
-  const level = eateryStatus?.level ?? 'no_data';
-  const queueColor = getQueueColor(level);
+  const display = resolveQueueDisplay(eatery, eateryStatus ?? undefined);
+  const level = display.level;
+  const queueColor = display.color;
 
   async function handleConfirm() {
     const success = await confirmReport(eateryId);
@@ -203,35 +264,38 @@ export function EateryDetailScreen() {
               <View style={styles.statusLeft}>
                 <StatusDot level={level} size={12} />
                 <Text style={[styles.statusText, { color: queueColor }]}>
-                  {queueLevelLabel(level)}
+                  {display.label}
                 </Text>
+                <EstimateBadge source={display.source} />
               </View>
-              {eateryStatus?.latest_report_at && (
+              {display.source === 'live' && display.latestReportAt && (
                 <Text style={styles.freshness}>
-                  🕐 {getFreshnessLabel(eateryStatus.latest_report_at)}
+                  🕐 {getFreshnessLabel(display.latestReportAt)}
                 </Text>
               )}
             </View>
 
-            {/* Freshness bar */}
-            <View style={styles.freshnessBarBg}>
-              <View style={[
-                styles.freshnessBarFill,
-                {
-                  width: `${Math.min(eateryStatus?.freshness_percent ?? 0, 100)}%` as any,
-                  backgroundColor: queueColor,
-                }
-              ]} />
-            </View>
+            {/* Freshness bar — live reports only */}
+            {display.source === 'live' && (
+              <View style={styles.freshnessBarBg}>
+                <View style={[
+                  styles.freshnessBarFill,
+                  {
+                    width: `${Math.min(display.freshnessPercent ?? 0, 100)}%` as any,
+                    backgroundColor: queueColor,
+                  }
+                ]} />
+              </View>
+            )}
 
             <View style={styles.statusMeta}>
               <Text style={styles.metaText}>
-                {eateryStatus
-                  ? `${eateryStatus.report_count} report${eateryStatus.report_count !== 1 ? 's' : ''}${eateryStatus.estimated_minutes ? ` · ~${Math.round(eateryStatus.estimated_minutes)} min wait` : ''}`
-                  : 'No recent reports — be the first!'
+                {display.source === 'live'
+                  ? `${display.reportCount ?? 0} report${display.reportCount !== 1 ? 's' : ''}${display.estimatedMinutes ? ` · ~${Math.round(display.estimatedMinutes)} min wait` : ''}`
+                  : `${display.note} · report a queue to make it live`
                 }
               </Text>
-              {eateryStatus && (
+              {display.source === 'live' && (
                 <TouchableOpacity
                   style={[styles.confirmBtn, confirmed && styles.confirmBtnDone]}
                   onPress={handleConfirm}
@@ -416,9 +480,7 @@ export function EateryDetailScreen() {
             {trendsLoading ? (
               <ActivityIndicator color={Colors.accent} style={{ marginTop: 8 }} />
             ) : !hasEnoughData ? (
-              <View style={styles.noTrends}>
-                <Text style={styles.noTrendsText}>Not enough data yet — check back after more reports come in.</Text>
-              </View>
+              <EstimateBars type={eatery.type} />
             ) : (
               <View style={styles.trendsCard}>
                 {/* Day selector */}
@@ -670,6 +732,13 @@ const styles = StyleSheet.create({
     padding: 14, borderWidth: 1, borderColor: Colors.border,
   },
   noTrendsText: { fontSize: 13, color: Colors.subtext, fontStyle: 'italic' },
+  estCard: {
+    backgroundColor: Colors.card, borderRadius: 14,
+    padding: 14, borderWidth: 1, borderColor: Colors.border, gap: 10,
+  },
+  estHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  estTitle: { fontSize: 12, fontWeight: '700', color: Colors.text },
+  estNote: { fontSize: 11, color: Colors.subtext, fontStyle: 'italic', lineHeight: 16 },
   trendsCard: {
     backgroundColor: Colors.card, borderRadius: 14,
     padding: 14, borderWidth: 1, borderColor: Colors.border, gap: 12,

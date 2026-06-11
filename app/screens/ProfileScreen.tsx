@@ -16,11 +16,11 @@ import { ProBadge } from '@components/common/ProBadge';
 import { PressableScale } from '@components/common/PressableScale';
 import { Colors } from '@constants/colors';
 import { supabase } from '@lib/supabase';
-import { AvatarFrame, UsernameColor, HatKey, EyewearKey, FloatItemKey, CompanionKey } from '@types/user';
-import { AvatarDisplay } from '@components/common/AvatarDisplay';
+import { AvatarFrame, UsernameColor } from '@types/user';
+import { UserAvatar } from '@components/common/UserAvatar';
+import { pickAndUploadAvatar, removeAvatar } from '@lib/avatarUpload';
 import {
   HAT_ASSETS, HAT_OPTIONS,
-  EYEWEAR_ASSETS, EYEWEAR_OPTIONS,
   FLOAT_ITEM_ASSETS, FLOAT_ITEM_OPTIONS,
   COMPANION_ASSETS, COMPANION_OPTIONS,
 } from '../../assets/avatar/avatarAssets';
@@ -74,6 +74,7 @@ export function ProfileScreen() {
   const [celebratingBadge, setCelebratingBadge] = useState<BadgeResult | null>(null);
   const [badgeQueue, setBadgeQueue]             = useState<BadgeResult[]>([]);
   const [savingCustom, setSavingCustom]         = useState(false);
+  const [uploadingPhoto, setUploadingPhoto]     = useState(false);
 
   const rankInfo = getRankProgress(user?.points ?? 0);
 
@@ -99,6 +100,51 @@ export function ProfileScreen() {
       .single();
     if (!error && data) setUser(data);
     setSavingCustom(false);
+  }
+
+  async function changePhoto() {
+    if (!user?.id || uploadingPhoto) return;
+    setUploadingPhoto(true);
+    try {
+      const res = await pickAndUploadAvatar(user.id);
+      if (res === 'denied') {
+        Alert.alert('Photo access needed', 'Enable photo-library access for QueueLah in Settings to upload a profile picture.');
+      } else if (res !== 'cancelled') {
+        setUser(res.profile);
+      }
+    } catch (e: any) {
+      Alert.alert('Upload failed', e?.message ?? 'Could not upload your photo. Please try again.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
+
+  async function clearPhoto() {
+    if (!user?.id) return;
+    setUploadingPhoto(true);
+    try {
+      const profile = await removeAvatar(user.id);
+      setUser(profile);
+    } catch (e: any) {
+      Alert.alert('Error', e?.message ?? 'Could not remove your photo.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
+
+  function openPhotoMenu() {
+    const hasPhoto = !!user?.avatar_url;
+    Alert.alert(
+      'Profile photo',
+      hasPhoto
+        ? 'Photos are public and appear on the leaderboard. Keep it appropriate — abusive images are removed.'
+        : 'Upload a photo (it replaces your character avatar). Photos are public and appear on the leaderboard, so keep it appropriate.',
+      [
+        { text: hasPhoto ? 'Replace photo' : 'Upload photo', onPress: changePhoto },
+        ...(hasPhoto ? [{ text: 'Remove photo', style: 'destructive' as const, onPress: clearPhoto }] : []),
+        { text: 'Cancel', style: 'cancel' as const },
+      ],
+    );
   }
 
   // ── Guest screen ──────────────────────────────────────────────
@@ -140,16 +186,23 @@ export function ProfileScreen() {
 
         {/* Hero */}
         <View style={styles.hero}>
-          <View style={styles.avatarWrap}>
-            <AvatarDisplay
+          <TouchableOpacity style={styles.avatarWrap} onPress={openPhotoMenu} activeOpacity={0.8}>
+            <UserAvatar
               size={80}
+              avatarUrl={user?.avatar_url}
+              username={user?.username}
+              usernameColor={currentColor}
               frame={currentFrame}
               hat={user?.avatar_hat}
-              eyewear={user?.avatar_eyewear}
               floatItem={user?.avatar_float_item}
               companion={user?.avatar_companion}
             />
-          </View>
+            <View style={styles.photoEditPill}>
+              {uploadingPhoto
+                ? <ActivityIndicator size="small" color={Colors.text} />
+                : <Text style={styles.photoEditPillText}>{user?.avatar_url ? 'Edit' : '+ Photo'}</Text>}
+            </View>
+          </TouchableOpacity>
 
           {/* Username + Pro badge */}
           <View style={styles.usernameRow}>
@@ -239,30 +292,6 @@ export function ProfileScreen() {
               ))}
             </View>
 
-            {/* ── Eyewear ── */}
-            <Text style={[styles.customLabel, { marginTop: 16 }]}>Eyewear</Text>
-            <View style={styles.customRow}>
-              <TouchableOpacity
-                style={[styles.accessoryOption, !user?.avatar_eyewear && styles.accessoryOptionActive]}
-                onPress={() => saveCustomisation('avatar_eyewear', null)}
-              >
-                <View style={styles.accessoryNone}><X size={16} color={Colors.subtext} /></View>
-                <Text style={[styles.accessoryLabel, !user?.avatar_eyewear && { color: Colors.accentYellow }]}>None</Text>
-              </TouchableOpacity>
-              {EYEWEAR_OPTIONS.map(e => (
-                <TouchableOpacity
-                  key={e.key}
-                  style={[styles.accessoryOption, user?.avatar_eyewear === e.key && styles.accessoryOptionActive]}
-                  onPress={() => saveCustomisation('avatar_eyewear', e.key)}
-                >
-                  <Image source={EYEWEAR_ASSETS[e.key]} style={styles.accessoryThumb} resizeMode="contain" />
-                  <Text style={[styles.accessoryLabel, user?.avatar_eyewear === e.key && { color: Colors.accentYellow }]}>
-                    {e.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
             {/* ── Float items ── */}
             <Text style={[styles.customLabel, { marginTop: 16 }]}>Float Item</Text>
             <View style={styles.customRow}>
@@ -324,11 +353,13 @@ export function ProfileScreen() {
                   ]}
                   onPress={() => saveCustomisation('avatar_frame', f.value)}
                 >
-                  <AvatarDisplay
+                  <UserAvatar
                     size={44}
+                    avatarUrl={user?.avatar_url}
+                    username={user?.username}
+                    usernameColor={currentColor}
                     frame={f.value as AvatarFrame}
                     hat={user?.avatar_hat}
-                    eyewear={user?.avatar_eyewear}
                   />
                   <Text style={[styles.frameLabel, currentFrame === f.value && { color: Colors.accentYellow }]}>
                     {f.label}
@@ -481,6 +512,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
   avatarWrap: { position: 'relative', marginBottom: 12 },
+  photoEditPill: {
+    position: 'absolute', bottom: -2, alignSelf: 'center',
+    backgroundColor: Colors.card2, borderRadius: 10,
+    paddingHorizontal: 8, paddingVertical: 2,
+    borderWidth: 1, borderColor: Colors.border,
+    minWidth: 44, alignItems: 'center',
+  },
+  photoEditPillText: { fontSize: 10, fontWeight: '700', color: Colors.text },
   streakBadge: {
     position: 'absolute', bottom: -4, right: -8,
     backgroundColor: Colors.card2, borderRadius: 10,

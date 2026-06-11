@@ -14,7 +14,10 @@ export const useQueueStore = create<QueueState>((set) => ({
     set((state) => ({ statuses: { ...state.statuses, [id]: status } })),
 
   setStatuses: (statuses) =>
-    set({
-      statuses: Object.fromEntries(statuses.map((s) => [s.stall_id ?? s.eatery_id, s])),
-    }),
+    set((state) => ({
+      statuses: {
+        ...state.statuses,
+        ...Object.fromEntries(statuses.map((s) => [s.stall_id ?? s.eatery_id, s])),
+      },
+    })),
 }));

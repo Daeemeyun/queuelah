@@ -15,8 +15,8 @@ import { PressableScale } from '@components/common/PressableScale';
 import { Colors } from '@constants/colors';
 import { AD_UNITS, REWARDED_AD_POINTS } from '@constants/ads';
 import { Analytics } from '@lib/analytics';
-import { SubscriptionTier, UsernameColor, HatKey, EyewearKey, FloatItemKey, CompanionKey } from '@types/user';
-import { AvatarDisplay } from '@components/common/AvatarDisplay';
+import { SubscriptionTier, UsernameColor, HatKey, FloatItemKey, CompanionKey } from '@types/user';
+import { UserAvatar } from '@components/common/UserAvatar';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,8 +28,8 @@ interface LeaderboardEntry {
   subscription_tier: SubscriptionTier;
   username_color: UsernameColor;
   avatar_frame: string;
+  avatar_url?: string | null;
   avatar_hat?: HatKey | null;
-  avatar_eyewear?: EyewearKey | null;
   avatar_float_item?: FloatItemKey | null;
   avatar_companion?: CompanionKey | null;
 }
@@ -57,10 +57,11 @@ function formatPoints(n: number): string {
 // ─── Medal Card (top 3) ───────────────────────────────────────────────────────
 
 function MedalCard({
-  entry, rank, isMe,
-}: { entry: LeaderboardEntry; rank: number; isMe: boolean }) {
+  entry, rank, isMe, onReportPhoto,
+}: { entry: LeaderboardEntry; rank: number; isMe: boolean; onReportPhoto: (e: LeaderboardEntry) => void }) {
   const isPro = entry.subscription_tier === 'pro';
   const nameColor = usernameColor(entry.username_color);
+  const canReport = !isMe && !!entry.avatar_url;
 
   return (
     <View style={[
@@ -69,14 +70,22 @@ function MedalCard({
       isPro && styles.proCardHighlight,
     ]}>
       <Text style={styles.medalEmoji}>{MEDALS[rank - 1]}</Text>
-      <AvatarDisplay
-        size={44}
-        frame={entry.avatar_frame as any}
-        hat={entry.avatar_hat}
-        eyewear={entry.avatar_eyewear}
-        floatItem={entry.avatar_float_item}
-        companion={entry.avatar_companion}
-      />
+      <TouchableOpacity
+        disabled={!canReport}
+        onPress={() => onReportPhoto(entry)}
+        activeOpacity={canReport ? 0.7 : 1}
+      >
+        <UserAvatar
+          size={44}
+          avatarUrl={entry.avatar_url}
+          username={entry.username}
+          usernameColor={entry.username_color}
+          frame={entry.avatar_frame as any}
+          hat={entry.avatar_hat}
+          floatItem={entry.avatar_float_item}
+          companion={entry.avatar_companion}
+        />
+      </TouchableOpacity>
       <View style={styles.medalNameRow}>
         <Text style={[styles.medalUsername, { color: nameColor }]} numberOfLines={1}>
           {entry.username}
@@ -96,10 +105,11 @@ function MedalCard({
 // ─── Regular Row (rank 4+) ────────────────────────────────────────────────────
 
 function LeaderboardRow({
-  entry, rank, isMe,
-}: { entry: LeaderboardEntry; rank: number; isMe: boolean }) {
+  entry, rank, isMe, onReportPhoto,
+}: { entry: LeaderboardEntry; rank: number; isMe: boolean; onReportPhoto: (e: LeaderboardEntry) => void }) {
   const isPro = entry.subscription_tier === 'pro';
   const nameColor = usernameColor(entry.username_color);
+  const canReport = !isMe && !!entry.avatar_url;
 
   return (
     <View style={[
@@ -109,16 +119,23 @@ function LeaderboardRow({
     ]}>
       <Text style={[styles.rowRank, rank <= 10 && styles.rowRankTop]}>{rank}</Text>
 
-      <View style={styles.rowAvatarWrap}>
-        <AvatarDisplay
+      <TouchableOpacity
+        style={styles.rowAvatarWrap}
+        disabled={!canReport}
+        onPress={() => onReportPhoto(entry)}
+        activeOpacity={canReport ? 0.7 : 1}
+      >
+        <UserAvatar
           size={38}
+          avatarUrl={entry.avatar_url}
+          username={entry.username}
+          usernameColor={entry.username_color}
           frame={entry.avatar_frame as any}
           hat={entry.avatar_hat}
-          eyewear={entry.avatar_eyewear}
           floatItem={entry.avatar_float_item}
           companion={entry.avatar_companion}
         />
-      </View>
+      </TouchableOpacity>
 
       <View style={styles.rowCenter}>
         <View style={styles.rowNameLine}>
@@ -198,13 +215,45 @@ export function LeaderboardScreen() {
     rewarded.load();
   }
 
+  function reportPhoto(entry: LeaderboardEntry) {
+    if (!user?.id) {
+      Alert.alert('Sign in required', 'Sign in to report a profile photo.');
+      return;
+    }
+    Alert.alert(
+      `Report ${entry.username}'s photo?`,
+      'Report this profile photo if it is offensive, explicit, or abusive. Our team reviews reports and removes violating photos within 24 hours.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Report',
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await supabase.from('avatar_reports').insert({
+              reported_user_id: entry.id,
+              reported_by: user.id,
+              reason: 'User reported profile photo',
+            });
+            if (error?.code === '23505') {
+              Alert.alert('Already reported', 'You have already reported this photo.');
+            } else if (error) {
+              Alert.alert('Error', error.message);
+            } else {
+              Alert.alert('Reported', 'Thanks — this photo has been flagged for review.');
+            }
+          },
+        },
+      ],
+    );
+  }
+
   async function load() {
     setLoading(true);
 
     const [topRes, rankRes] = await Promise.all([
       supabase
         .from('user_profiles')
-        .select('id, username, points, streak_days, subscription_tier, username_color, avatar_frame, avatar_hat, avatar_eyewear, avatar_float_item, avatar_companion')
+        .select('id, username, points, streak_days, subscription_tier, username_color, avatar_frame, avatar_url, avatar_hat, avatar_float_item, avatar_companion')
         .order('points', { ascending: false })
         .limit(50),
 
@@ -259,6 +308,7 @@ export function LeaderboardScreen() {
                     entry={entry}
                     rank={i + 1}
                     isMe={user?.id === entry.id}
+                    onReportPhoto={reportPhoto}
                   />
                 ))}
               </View>
@@ -273,6 +323,7 @@ export function LeaderboardScreen() {
             entry={item}
             rank={index + 4}
             isMe={user?.id === item.id}
+            onReportPhoto={reportPhoto}
           />
         )}
         ItemSeparatorComponent={() => <View style={styles.separator} />}

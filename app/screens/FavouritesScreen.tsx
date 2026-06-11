@@ -11,7 +11,9 @@ import { useAllQueueStatuses } from '@hooks/useAllQueueStatuses';
 import { useLocation } from '@hooks/useLocation';
 import { StatusDot } from '@components/common/StatusDot';
 import { Colors } from '@constants/colors';
-import { queueLevelLabel, getQueueColor, getFreshnessLabel } from '@lib/helpers';
+import { getFreshnessLabel } from '@lib/helpers';
+import { resolveQueueDisplay } from '@lib/busyness';
+import { EstimateBadge } from '@components/common/EstimateBadge';
 import { distanceKm, formatDistance } from '@lib/maps';
 
 type SortOption = 'distance' | 'name' | 'queue';
@@ -142,8 +144,9 @@ export function FavouritesScreen() {
         showsVerticalScrollIndicator={false}
         renderItem={({ item: eatery }) => {
           const status = statuses[eatery.id];
-          const level = status?.level ?? 'no_data';
-          const queueColor = getQueueColor(level);
+          const display = resolveQueueDisplay(eatery, status);
+          const level = display.level;
+          const queueColor = display.color;
           const distance = location.granted
             ? distanceKm(location.latitude, location.longitude, eatery.latitude, eatery.longitude)
             : null;
@@ -172,13 +175,14 @@ export function FavouritesScreen() {
                 <View style={styles.statusRow}>
                   <StatusDot level={level} size={8} />
                   <Text style={[styles.statusLabel, { color: queueColor }]}>
-                    {queueLevelLabel(level)}
+                    {display.label}
                   </Text>
-                  {status?.estimated_minutes && (
-                    <Text style={styles.statusMeta}>· ~{Math.round(status.estimated_minutes)} min</Text>
+                  <EstimateBadge source={display.source} size="xs" />
+                  {display.source === 'live' && display.estimatedMinutes && (
+                    <Text style={styles.statusMeta}>· ~{Math.round(display.estimatedMinutes)} min</Text>
                   )}
-                  {status?.latest_report_at && (
-                    <Text style={styles.freshness}>· {getFreshnessLabel(status.latest_report_at)}</Text>
+                  {display.source === 'live' && display.latestReportAt && (
+                    <Text style={styles.freshness}>· {getFreshnessLabel(display.latestReportAt)}</Text>
                   )}
                 </View>
                 {eatery.opening_hours && (

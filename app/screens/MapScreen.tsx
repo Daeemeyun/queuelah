@@ -18,7 +18,8 @@ import { MapMarker } from '@components/map/MapMarker';
 import { EateryBottomSheet } from '@components/map/EateryBottomSheet';
 import { StatusDot } from '@components/common/StatusDot';
 import { PressableScale } from '@components/common/PressableScale';
-import { queueLevelLabel, getQueueColor } from '@lib/helpers';
+import { EstimateBadge } from '@components/common/EstimateBadge';
+import { resolveQueueDisplay } from '@lib/busyness';
 import { Colors } from '@constants/colors';
 import { Config } from '@constants/config';
 import { AD_UNITS } from '@constants/ads';
@@ -220,7 +221,8 @@ export function MapScreen() {
                 >
                   {filteredEateries.map(eatery => {
                     const status = statuses[eatery.id];
-                    const level = status?.level ?? 'no_data';
+                    const display = resolveQueueDisplay(eatery, status);
+                    const level = display.level;
                     return (
                       <TouchableOpacity
                         key={eatery.id}
@@ -235,9 +237,10 @@ export function MapScreen() {
                         </View>
                         <View style={styles.searchResultStatus}>
                           <StatusDot level={level} size={8} />
-                          <Text style={[styles.searchResultLevel, { color: getQueueColor(level) }]}>
-                            {queueLevelLabel(level)}
+                          <Text style={[styles.searchResultLevel, { color: display.color }]}>
+                            {display.shortLabel}
                           </Text>
+                          <EstimateBadge source={display.source} size="xs" />
                         </View>
                       </TouchableOpacity>
                     );

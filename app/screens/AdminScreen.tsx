@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, ActivityIndicator, RefreshControl,
+  TextInput, Alert, ActivityIndicator, RefreshControl, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -23,7 +23,7 @@ interface PendingEatery {
   submitter_username: string | null;
 }
 
-type AdminTab = 'pending' | 'featured';
+type AdminTab = 'pending' | 'featured' | 'photos';
 
 const EATERY_TYPE_LABELS: Record<EateryType, string> = {
   hawker_centre: 'Hawker Centre',
@@ -67,9 +67,19 @@ export function AdminScreen() {
             Featured
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'photos' && styles.tabActive]}
+          onPress={() => setActiveTab('photos')}
+        >
+          <Text style={[styles.tabLabel, activeTab === 'photos' && styles.tabLabelActive]}>
+            Photos
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      {activeTab === 'pending' ? <PendingTab /> : <FeaturedTab />}
+      {activeTab === 'pending' ? <PendingTab />
+        : activeTab === 'featured' ? <FeaturedTab />
+        : <PhotosTab />}
     </SafeAreaView>
   );
 }
@@ -386,6 +396,155 @@ function FeaturedRow({
   );
 }
 
+// ─── Reported Photos Tab (UGC moderation, Apple Guideline 1.2) ──────────────────
+
+interface ReportedPhoto {
+  user_id: string;
+  username: string;
+  avatar_url: string | null;
+  report_count: number;
+  latest_at: string;
+}
+
+function PhotosTab() {
+  const [photos, setPhotos]   = useState<ReportedPhoto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [acting, setActing]   = useState<string | null>(null);
+
+  useFocusEffect(useCallback(() => { load(); }, []));
+
+  async function load() {
+    setLoading(true);
+    const { data: reports, error } = await supabase
+      .from('avatar_reports')
+      .select('reported_user_id, created_at')
+      .eq('resolved', false)
+      .order('created_at', { ascending: false });
+
+    if (error) { Alert.alert('Error', error.message); setLoading(false); return; }
+
+    const rows = (reports ?? []) as { reported_user_id: string; created_at: string }[];
+
+    // Aggregate per reported user.
+    const agg: Record<string, { count: number; latest: string }> = {};
+    rows.forEach(r => {
+      const cur = agg[r.reported_user_id];
+      if (cur) { cur.count += 1; if (r.created_at > cur.latest) cur.latest = r.created_at; }
+      else agg[r.reported_user_id] = { count: 1, latest: r.created_at };
+    });
+
+    const uids = Object.keys(agg);
+    let profileMap: Record<string, { username: string; avatar_url: string | null }> = {};
+    if (uids.length > 0) {
+      const { data: profiles } = await supabase
+        .from('user_profiles')
+        .select('id, username, avatar_url')
+        .in('id', uids);
+      (profiles ?? []).forEach((p: any) => { profileMap[p.id] = { username: p.username, avatar_url: p.avatar_url }; });
+    }
+
+    setPhotos(uids.map(id => ({
+      user_id: id,
+      username: profileMap[id]?.username ?? '(unknown)',
+      avatar_url: profileMap[id]?.avatar_url ?? null,
+      report_count: agg[id].count,
+      latest_at: agg[id].latest,
+    })).sort((a, b) => b.report_count - a.report_count));
+
+    setLoading(false);
+  }
+
+  function confirmRemove(p: ReportedPhoto) {
+    Alert.alert(
+      'Remove photo',
+      `Remove @${p.username}'s profile photo? It will stop showing everywhere and their reports will be resolved.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Remove', style: 'destructive', onPress: () => removePhoto(p) },
+      ],
+    );
+  }
+
+  async function removePhoto(p: ReportedPhoto) {
+    setActing(p.user_id);
+    // Null the URL + resolve reports (SECURITY DEFINER, admin-guarded).
+    const { error } = await supabase.rpc('admin_remove_avatar', { target_user: p.user_id });
+    if (error) { Alert.alert('Error', error.message); setActing(null); return; }
+    // Best-effort delete of the storage object too.
+    await supabase.storage.from('avatars').remove([`${p.user_id}.jpg`]);
+    setPhotos(prev => prev.filter(x => x.user_id !== p.user_id));
+    setActing(null);
+  }
+
+  async function dismiss(p: ReportedPhoto) {
+    setActing(p.user_id);
+    const { error } = await supabase
+      .from('avatar_reports')
+      .update({ resolved: true })
+      .eq('reported_user_id', p.user_id)
+      .eq('resolved', false);
+    if (error) { Alert.alert('Error', error.message); setActing(null); return; }
+    setPhotos(prev => prev.filter(x => x.user_id !== p.user_id));
+    setActing(null);
+  }
+
+  if (loading) return <ActivityIndicator color={Colors.accent} style={{ flex: 1, alignSelf: 'center' }} />;
+
+  if (photos.length === 0) {
+    return (
+      <View style={styles.emptyWrap}>
+        <Text style={styles.emptyEmoji}>✅</Text>
+        <Text style={styles.emptyTitle}>No reported photos</Text>
+        <Text style={styles.emptySub}>Reported profile photos will appear here for review.</Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView
+      style={styles.list}
+      contentContainerStyle={{ padding: 16, gap: 12 }}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={Colors.accent} />}
+    >
+      <Text style={styles.sectionNote}>{photos.length} reported photo{photos.length !== 1 ? 's' : ''}</Text>
+      {photos.map(p => (
+        <View key={p.user_id} style={styles.card}>
+          <View style={styles.photoRow}>
+            {p.avatar_url
+              ? <Image source={{ uri: p.avatar_url }} style={styles.photoThumb} />
+              : <View style={[styles.photoThumb, styles.photoThumbEmpty]}><Text style={styles.emptySub}>none</Text></View>}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardName}>@{p.username}</Text>
+              <Text style={styles.cardAddress}>
+                {p.report_count} report{p.report_count !== 1 ? 's' : ''} · latest {formatDate(p.latest_at)}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.cardActions}>
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.rejectBtn, acting === p.user_id && styles.btnDisabled]}
+              onPress={() => confirmRemove(p)}
+              disabled={acting === p.user_id}
+            >
+              {acting === p.user_id
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Text style={styles.actionBtnText}>Remove photo</Text>}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.unfeatureBtn, acting === p.user_id && styles.btnDisabled]}
+              onPress={() => dismiss(p)}
+              disabled={acting === p.user_id}
+            >
+              <Text style={[styles.actionBtnText, { color: Colors.text }]}>Dismiss</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ))}
+      <View style={{ height: 32 }} />
+    </ScrollView>
+  );
+}
+
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string): string {
@@ -473,4 +632,8 @@ const styles = StyleSheet.create({
   },
   searchIcon:  { fontSize: 16 },
   searchInput: { flex: 1, color: Colors.text, fontSize: 15 },
+
+  photoRow:   { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  photoThumb: { width: 56, height: 56, borderRadius: 28, backgroundColor: Colors.card2 },
+  photoThumbEmpty: { alignItems: 'center', justifyContent: 'center' },
 });
