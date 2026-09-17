@@ -41,7 +41,7 @@ export function useAuth() {
   async function fetchProfile(userId: string) {
     const { data } = await supabase
       .from('user_profiles')
-      .select('*')
+      .select('id, username, avatar_url, points, streak_days, last_report_at, subscription_tier, avatar_frame, username_color, avatar_hat, avatar_eyewear, avatar_float_item, avatar_companion, created_at, is_admin')
       .eq('id', userId)
       .single();
     if (data) {
