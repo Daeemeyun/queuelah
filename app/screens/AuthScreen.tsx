@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '@lib/supabase';
 import { Colors } from '@constants/colors';
+import { SocialAuthButtons } from '@components/auth/SocialAuthButtons';
 
 type Mode = 'login' | 'signup';
 
@@ -126,6 +127,10 @@ export function AuthScreen() {
             }
           </TouchableOpacity>
         </View>
+
+        {/* Social sign-in — renders nothing until a provider is enabled in
+            app/lib/auth/providers.ts (safe no-op for the live build). */}
+        <SocialAuthButtons onSuccess={() => navigation.goBack()} />
 
         {/* Toggle mode */}
         <View style={styles.toggleRow}>

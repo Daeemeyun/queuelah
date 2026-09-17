@@ -15,7 +15,8 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.queuelah.app",
-      "buildNumber": "7",
+      "buildNumber": "8",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "NSUserNotificationsUsageDescription": "QueueLah sends reminders to keep your reporting streak and notifies you when your reports are confirmed.",
         "NSLocationWhenInUseUsageDescription": "QueueLah uses your location to show nearby hawker centres and food courts on the map.",
@@ -48,6 +49,14 @@
         {
           "androidAppId": "ca-app-pub-3132762702532878~8008430641",
           "iosAppId": "ca-app-pub-3132762702532878~3460326913"
+        }
+      ],
+      "expo-secure-store",
+      "expo-apple-authentication",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.726787404688-mvo3d0ut6nf02i9be5ev55r3v0g3ctdv"
         }
       ]
     ],

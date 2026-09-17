@@ -21,8 +21,11 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+// The mobile app calls this function natively (no Origin header, so CORS does
+// not apply to it). The wildcard only mattered for browsers — scope it to our
+// own site so a malicious web page can't invoke this destructive endpoint.
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin':  '*',
+  'Access-Control-Allow-Origin':  'https://queuelah.net',
   'Access-Control-Allow-Headers': 'authorization, content-type',
 };
 
