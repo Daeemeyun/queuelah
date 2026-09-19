@@ -43,7 +43,7 @@ client ("server" client).
 
 - [ ] **B1.** console.cloud.google.com → create/select a project (e.g. "QueueLah").
 - [ ] **B2.** APIs & Services → **OAuth consent screen**: External, fill app name,
-      support email (`redacted@gmail.com`), developer email. Add yourself as a
+      support email (`<your-apple-id-email>`), developer email. Add yourself as a
       test user while in "Testing", or publish.
 - [ ] **B3.** Credentials → Create Credentials → **OAuth client ID → iOS**:
       - Bundle ID: `com.queuelah.app`
