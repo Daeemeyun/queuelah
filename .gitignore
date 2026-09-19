@@ -48,3 +48,6 @@ queuelah-fresh/
 # generated native folders
 /ios
 /android
+
+# Internal working notes - not for the public repo
+CLAUDE.md
