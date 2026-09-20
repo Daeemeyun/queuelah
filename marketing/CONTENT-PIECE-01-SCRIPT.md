@@ -294,7 +294,9 @@ Repo, migrations and reasoning: github.com/Daeemeyun/queuelah
 
 **Accuracy — do these before recording, they are the ones that cost credibility:**
 
-- [ ] **Check whether anyone actually exploited it.** Three months of exposure. Query whether any `is_admin` flag was ever flipped by a non-admin, and say the real answer on camera. A security audience asks this first, and "I did not check" is a worse answer than "someone did."
+- [x] **Did anyone actually exploit it? Checked 2026-09-20 — no evidence.** One admin account (yours, created at project start), one pro account (yours), no points outliers, 9 accounts total. Say this on camera, including the limitation. Suggested line:
+
+  > *"Before you ask: I went and checked. Nine accounts, one admin, and that one is mine. Nobody gave themselves a paid tier, nobody inflated their points. But I want to be precise, because this matters. There is no audit logging on that table. So what I can actually tell you is that nobody flipped a flag and **left it** flipped. Someone who escalated, did something, and set it back would be invisible to me. With nine users and an app nobody has heard of, I am not losing sleep. But 'no evidence' and 'did not happen' are different sentences, and I am not going to pretend they are the same one."*
 - [ ] **Do not say everything is "closed and verified."** Stage 2 of migration 028 is still pending. The video explains this honestly; keep it that way. A hiring manager who finds an open risk you called closed will trust nothing else you said.
 - [ ] **Do not claim "RLS cannot express this."** It sort of can, via `WITH CHECK`. The script now says so, which is both true and more impressive than the absolute.
 - [ ] **Say "any user who signed up,"** never "one HTTP request." It is sign-up plus token plus PATCH, and someone will point that out.
