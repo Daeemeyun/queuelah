@@ -89,14 +89,13 @@ export function useTrends(eateryId: string): TrendsResult {
   const load = useCallback(async () => {
     setState(s => ({ ...s, loading: true, error: null }));
 
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-
-    const { data, error } = await supabase
-      .from('queue_reports')
-      .select('level, created_at')
-      .eq('eatery_id', eateryId)
-      .gte('created_at', thirtyDaysAgo)
-      .limit(2000); // safety cap
+    // Reports older than 30 minutes are no longer publicly readable (migration
+    // 032: they revealed who was where, and when). Trends only need level and
+    // time, so they come from a function that returns 30 days of exactly that
+    // and no identities. The 30-day window and 2000-row cap live server-side.
+    const { data, error } = await supabase.rpc('eatery_report_history', {
+      p_eatery_id: eateryId,
+    });
 
     if (error) {
       setState(s => ({ ...s, loading: false, error: error.message }));

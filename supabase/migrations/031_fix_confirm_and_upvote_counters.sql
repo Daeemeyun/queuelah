@@ -104,9 +104,11 @@ BEGIN
     RETURN 'no_report';
   END IF;
 
-  -- You cannot confirm your own report.
+  -- You cannot confirm your own report. The device check applies to guests
+  -- only: a signed-in caller's p_device_id is ignored, so it can't be used to
+  -- probe whether some other guest device authored a report.
   IF (auth.uid() IS NOT NULL AND v_author = auth.uid())
-     OR (p_device_id IS NOT NULL AND v_device = p_device_id) THEN
+     OR (auth.uid() IS NULL AND p_device_id IS NOT NULL AND v_device = p_device_id) THEN
     RETURN 'own_report';
   END IF;
 

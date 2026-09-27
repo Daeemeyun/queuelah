@@ -11,8 +11,8 @@ import { useEateryStore } from '@store/eateryStore';
 import { Colors } from '@constants/colors';
 import { getQueueColor, queueLevelLabel, getFreshnessLabel } from '@lib/helpers';
 import { StatusDot } from '@components/common/StatusDot';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { QueueLevel } from '@types/queue';
+import { loadGuestHistory } from '@lib/guestHistory';
 
 interface HistoryItem {
   id: string;
@@ -61,25 +61,12 @@ export function HistoryScreen() {
           setHistory(enriched);
         }
       } else {
-        // Guest: load from AsyncStorage (device reports)
-        const deviceId = await AsyncStorage.getItem('device_id');
-        if (!deviceId) { setHistory([]); setLoading(false); return; }
-
-        const { data, error } = await supabase
-          .from('queue_reports')
-          .select('*, stalls(name)')
-          .eq('device_id', deviceId)
-          .order('created_at', { ascending: false })
-          .limit(30);
-
-        if (!error && data) {
-          const enriched = data.map(r => ({
-            ...r,
-            eatery_name: eateries.find(e => e.id === r.eatery_id)?.name ?? 'Unknown eatery',
-            stall_name: r.stalls?.name,
-          }));
-          setHistory(enriched);
-        }
+        // Guest: history is stored on this device (see lib/guestHistory).
+        const local = await loadGuestHistory();
+        setHistory(local.map(r => ({
+          ...r,
+          eatery_name: eateries.find(e => e.id === r.eatery_id)?.name ?? 'Unknown eatery',
+        })));
       }
     } finally {
       setLoading(false);

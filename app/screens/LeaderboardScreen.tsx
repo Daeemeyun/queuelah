@@ -193,14 +193,27 @@ export function LeaderboardScreen() {
     const unsubEarned = rewarded.addAdEventListener(
       RewardedAdEventType.EARNED_REWARD,
       async () => {
-        await supabase.rpc('increment_points', {
+        // Previously the result was ignored and "+50 points" was shown even
+        // when nothing was awarded. The server now caps rewards per day
+        // (migration 032), so the outcome must be checked.
+        const { error } = await supabase.rpc('increment_points', {
           user_id: user.id,
           amount: REWARDED_AD_POINTS,
         });
-        Analytics.track('ad_watched', { points_earned: REWARDED_AD_POINTS });
         setAdLoading(false);
-        Alert.alert('Points earned!', `+${REWARDED_AD_POINTS} points added to your account.`);
-        load();
+        if (error) {
+          const capped = error.message?.includes('Daily ad reward limit');
+          Alert.alert(
+            capped ? 'Daily limit reached' : "Couldn't add points",
+            capped
+              ? "You've earned the maximum ad rewards for today. Come back tomorrow!"
+              : 'Something went wrong. Please try again later.',
+          );
+        } else {
+          Analytics.track('ad_watched', { points_earned: REWARDED_AD_POINTS });
+          Alert.alert('Points earned!', `+${REWARDED_AD_POINTS} points added to your account.`);
+          load();
+        }
         unsubLoaded();
         unsubEarned();
       },

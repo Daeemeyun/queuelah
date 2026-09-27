@@ -22,6 +22,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Config } from '@constants/config';
 import { Analytics } from '@lib/analytics';
 import { getDeviceId } from '@lib/deviceId';
+import { recordGuestReport } from '@lib/guestHistory';
 
 const SLIDER_BOUNDS: Record<QueueLevel, { min: number; max: number }> = {
   short:  { min: 0,  max: 10 },
@@ -109,6 +110,13 @@ export function ReportScreen() {
           `cooldown_${selectedEateryId}_${stallId ?? 'eatery'}`,
           Date.now().toString()
         );
+        await recordGuestReport({
+          eatery_id: selectedEateryId,
+          stall_id: stallId ?? undefined,
+          stall_name: stallName ?? undefined,
+          level: selectedLevel,
+          estimated_minutes: minutes > 0 ? minutes : undefined,
+        });
       }
 
       let successMessage = 'Thanks! Your report helps everyone.\nSign up to earn points and badges!';
