@@ -1,40 +1,49 @@
 import { useState } from 'react';
 import { supabase } from '@lib/supabase';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Analytics } from '@lib/analytics';
+import { useAuthStore } from '@store/authStore';
+import { getDeviceId } from '@lib/deviceId';
 
+export type ConfirmResult =
+  | 'confirmed'    // counted
+  | 'already'      // this user/device already confirmed this report
+  | 'no_report'    // nothing fresh to confirm (reports expire after 30 min)
+  | 'own_report'   // you can't confirm your own report
+  | 'error';       // network or server failure
+
+/**
+ * Confirms the latest venue-level report for an eatery.
+ *
+ * Goes through the `confirm_latest_report` RPC (migration 031). The previous
+ * version wrote the counter directly, which RLS rejected; the error was never
+ * checked, so the app said "Confirmed!" while nothing was saved.
+ */
 export function useConfirmReport() {
   const [confirming, setConfirming] = useState(false);
+  const isGuest = useAuthStore((s) => s.isGuest);
 
-  async function confirmReport(eateryId: string): Promise<boolean> {
-    // Prevent confirming same eatery twice
-    const key = `confirmed_${eateryId}`;
-    const already = await AsyncStorage.getItem(key);
-    if (already) return false;
-
+  async function confirmReport(eateryId: string): Promise<ConfirmResult> {
     setConfirming(true);
     try {
-      // Increment confirmations on the latest active report for this eatery
-      const expiryTime = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-      const { data } = await supabase
-        .from('queue_reports')
-        .select('id, confirmations')
-        .eq('eatery_id', eateryId)
-        .gte('created_at', expiryTime)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+      const deviceId = isGuest ? await getDeviceId() : null;
+      const { data, error } = await supabase.rpc('confirm_latest_report', {
+        p_eatery_id: eateryId,
+        p_device_id: deviceId,
+      });
 
-      if (!data) return false;
+      if (error) return 'error';
 
-      await supabase
-        .from('queue_reports')
-        .update({ confirmations: (data.confirmations ?? 0) + 1 })
-        .eq('id', data.id);
-
-      await AsyncStorage.setItem(key, '1');
-      Analytics.track('report_confirmed', { eatery_id: eateryId });
-      return true;
+      const result = (data as ConfirmResult) ?? 'error';
+      if (result === 'confirmed') {
+        Analytics.track('report_confirmed', { eatery_id: eateryId });
+      }
+      // 'no_identity' only happens if a guest has no device id, which
+      // getDeviceId() prevents; treat it as an error rather than a new state.
+      return ['confirmed', 'already', 'no_report', 'own_report'].includes(result)
+        ? result
+        : 'error';
+    } catch {
+      return 'error';
     } finally {
       setConfirming(false);
     }

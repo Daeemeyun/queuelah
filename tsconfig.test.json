@@ -1,0 +1,17 @@
+{
+  "//": "Used ONLY to run standalone tests with tsx. Metro/EAS read tsconfig.json, not this file. Mirrors the babel module-resolver aliases in babel.config.js.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["app/*"],
+      "@components/*": ["app/components/*"],
+      "@screens/*": ["app/screens/*"],
+      "@hooks/*": ["app/hooks/*"],
+      "@lib/*": ["app/lib/*"],
+      "@store/*": ["app/store/*"],
+      "@types/*": ["app/types/*"],
+      "@constants/*": ["app/constants/*"]
+    }
+  }
+}

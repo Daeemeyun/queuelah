@@ -209,12 +209,24 @@ export function EateryDetailScreen() {
   const queueColor = display.color;
 
   async function handleConfirm() {
-    const success = await confirmReport(eateryId);
-    if (success) {
-      setConfirmed(true);
-      Alert.alert('✅ Confirmed!', 'Thanks for verifying the queue status.');
-    } else {
-      Alert.alert('Already confirmed', 'You\'ve already confirmed this report.');
+    const result = await confirmReport(eateryId);
+    switch (result) {
+      case 'confirmed':
+        setConfirmed(true);
+        Alert.alert('✅ Confirmed!', 'Thanks for verifying the queue status.');
+        break;
+      case 'already':
+        setConfirmed(true);
+        Alert.alert('Already confirmed', "You've already confirmed this report.");
+        break;
+      case 'own_report':
+        Alert.alert("That's your report", "You can't confirm a report you submitted.");
+        break;
+      case 'no_report':
+        Alert.alert('Nothing to confirm', 'This report has expired. Reports only last 30 minutes.');
+        break;
+      default:
+        Alert.alert("Couldn't confirm", 'Something went wrong. Please try again.');
     }
   }
 
@@ -325,16 +337,14 @@ export function EateryDetailScreen() {
             </View>
           </View>
 
-          {/* Stall-level breakdown */}
-          {eatery.has_stalls && (
+          {/* Stall-level breakdown. Only rendered when stall data actually
+              exists: almost every hawker centre has has_stalls = true but no
+              stall rows, which used to show an empty "No stall data yet"
+              section on nearly every venue. */}
+          {eatery.has_stalls && !stallsLoading && stalls.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>STALL QUEUE STATUS</Text>
-              {stallsLoading ? (
-                <ActivityIndicator color={Colors.accent} style={{ marginTop: 12 }} />
-              ) : stalls.length === 0 ? (
-                <Text style={styles.emptyText}>No stall data yet</Text>
-              ) : (
-                stalls.map(stall => {
+              {stalls.map(stall => {
                   const stallStatus = statuses[stall.id];
                   const stallLevel = stallStatus?.level ?? 'no_data';
                   const stallColor = getQueueColor(stallLevel);
@@ -371,8 +381,7 @@ export function EateryDetailScreen() {
                       </View>
                     </View>
                   );
-                })
-              )}
+                })}
             </View>
           )}
 

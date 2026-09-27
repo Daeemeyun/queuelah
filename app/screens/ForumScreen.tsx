@@ -240,13 +240,29 @@ export function ForumScreen() {
       return next;
     });
 
-    if (alreadyUpvoted) {
-      await supabase.from('forum_upvotes').delete()
-        .eq('user_id', user.id).eq('post_id', post.id);
-      await supabase.from('forum_posts').update({ upvotes: post.upvotes - 1 }).eq('id', post.id);
-    } else {
-      await supabase.from('forum_upvotes').insert({ user_id: user.id, post_id: post.id });
-      await supabase.from('forum_posts').update({ upvotes: post.upvotes + 1 }).eq('id', post.id);
+    // Only the user's own forum_upvotes row is written here. The post's
+    // `upvotes` count is maintained by a database trigger (migration 031); the
+    // old direct counter update was always rejected by RLS.
+    const { error } = alreadyUpvoted
+      ? await supabase.from('forum_upvotes').delete()
+          .eq('user_id', user.id).eq('post_id', post.id)
+      : await supabase.from('forum_upvotes').insert({ user_id: user.id, post_id: post.id });
+
+    if (error) {
+      // Roll back the optimistic update so the UI never claims a vote that
+      // wasn't saved.
+      setPosts(prev =>
+        prev.map(p =>
+          p.id === post.id
+            ? { ...p, upvotes: p.upvotes + (alreadyUpvoted ? 1 : -1), has_upvoted: alreadyUpvoted }
+            : p
+        )
+      );
+      setUpvotedIds(prev => {
+        const next = new Set(prev);
+        alreadyUpvoted ? next.add(post.id) : next.delete(post.id);
+        return next;
+      });
     }
   }
 

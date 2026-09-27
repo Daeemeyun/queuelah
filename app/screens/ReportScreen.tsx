@@ -21,6 +21,7 @@ import { awardPointsForReport, BadgeResult } from '@lib/gamification';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Config } from '@constants/config';
 import { Analytics } from '@lib/analytics';
+import { getDeviceId } from '@lib/deviceId';
 
 const SLIDER_BOUNDS: Record<QueueLevel, { min: number; max: number }> = {
   short:  { min: 0,  max: 10 },
@@ -263,15 +264,6 @@ export function ReportScreen() {
       />
     </SafeAreaView>
   );
-}
-
-async function getDeviceId(): Promise<string> {
-  let id = await AsyncStorage.getItem('device_id');
-  if (!id) {
-    id = 'device_' + Math.random().toString(36).substr(2, 12);
-    await AsyncStorage.setItem('device_id', id);
-  }
-  return id;
 }
 
 const styles = StyleSheet.create({

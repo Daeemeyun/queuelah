@@ -1,23 +1,33 @@
 import { create } from 'zustand';
 import { QueueStatus } from '@types/queue';
+import { statusKey } from '@lib/queueStatuses';
 
 interface QueueState {
-  statuses: Record<string, QueueStatus>; // keyed by eatery_id or stall_id
-  setStatus: (id: string, status: QueueStatus) => void;
-  setStatuses: (statuses: QueueStatus[]) => void;
+  statuses: Record<string, QueueStatus>; // keyed by stall_id, else eatery_id
+
+  /** Replace everything. Used by the global map fetch, which sees every fresh report. */
+  replaceAll: (statuses: QueueStatus[]) => void;
+
+  /** Replace only one eatery's entries (venue + its stalls). Used by the detail screen. */
+  replaceForEatery: (eateryId: string, statuses: QueueStatus[]) => void;
 }
 
+// These REPLACE rather than merge. The old store only ever merged, so once a
+// report expired it was never removed and kept showing as "Live" until the app
+// restarted.
 export const useQueueStore = create<QueueState>((set) => ({
   statuses: {},
 
-  setStatus: (id, status) =>
-    set((state) => ({ statuses: { ...state.statuses, [id]: status } })),
+  replaceAll: (statuses) =>
+    set({ statuses: Object.fromEntries(statuses.map((s) => [statusKey(s), s])) }),
 
-  setStatuses: (statuses) =>
-    set((state) => ({
-      statuses: {
-        ...state.statuses,
-        ...Object.fromEntries(statuses.map((s) => [s.stall_id ?? s.eatery_id, s])),
-      },
-    })),
+  replaceForEatery: (eateryId, statuses) =>
+    set((state) => {
+      const next: Record<string, QueueStatus> = {};
+      for (const [key, s] of Object.entries(state.statuses)) {
+        if (s.eatery_id !== eateryId) next[key] = s;
+      }
+      for (const s of statuses) next[statusKey(s)] = s;
+      return { statuses: next };
+    }),
 }));

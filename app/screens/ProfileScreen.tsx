@@ -435,14 +435,8 @@ export function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>ACCOUNT</Text>
           <View style={styles.settingsCard}>
-            <TouchableOpacity style={styles.settingsRow} onPress={() => navigation.navigate('GoPro')}>
-              <View style={styles.settingsLabelRow}>
-                <Crown size={16} color={Colors.accentYellow} />
-                <Text style={styles.settingsLabel}>QueueLah Pro — Coming Soon</Text>
-              </View>
-              <ChevronRight size={18} color={Colors.subtext} />
-            </TouchableOpacity>
-            <View style={styles.settingsDivider} />
+            {/* "QueueLah Pro — Coming Soon" row removed in 1.0.2: it led to a
+                dead-end screen for a paid tier that is not planned. */}
             <TouchableOpacity style={styles.settingsRow} onPress={() => navigation.navigate('Leaderboard')}>
               <View style={styles.settingsLabelRow}>
                 <Trophy size={16} color={Colors.text} />

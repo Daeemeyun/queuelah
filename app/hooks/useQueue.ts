@@ -1,18 +1,23 @@
 import { useEffect } from 'react';
 import { supabase } from '@lib/supabase';
 import { useQueueStore } from '@store/queueStore';
-import { QueueStatus } from '@types/queue';
-import { getFreshnessPercent } from '@lib/helpers';
+import {
+  buildQueueStatuses,
+  reportWindowStart,
+  STATUS_REFRESH_MS,
+  STATUS_REPORT_COLUMNS,
+  StatusReportRow,
+} from '@lib/queueStatuses';
 
-/** Fetches and subscribes to real-time queue statuses for a given eatery */
+/** Fetches and subscribes to real-time queue statuses for one eatery and its stalls. */
 export function useQueueStatus(eateryId: string) {
-  const { statuses, setStatuses } = useQueueStore();
+  const statuses = useQueueStore((s) => s.statuses);
+  const replaceForEatery = useQueueStore((s) => s.replaceForEatery);
 
   useEffect(() => {
-    // Initial fetch
-    fetchStatuses(eateryId, setStatuses);
+    const refresh = () => fetchStatuses(eateryId, replaceForEatery);
+    refresh();
 
-    // Real-time subscription — updates the map when anyone submits a report
     const channel = supabase
       .channel(`queue:${eateryId}`)
       .on('postgres_changes', {
@@ -20,53 +25,34 @@ export function useQueueStatus(eateryId: string) {
         schema: 'public',
         table: 'queue_reports',
         filter: `eatery_id=eq.${eateryId}`,
-      }, () => {
-        fetchStatuses(eateryId, setStatuses);
-      })
+      }, refresh)
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, [eateryId]);
+    const timer = setInterval(refresh, STATUS_REFRESH_MS);
+
+    return () => {
+      clearInterval(timer);
+      supabase.removeChannel(channel);
+    };
+  }, [eateryId, replaceForEatery]);
 
   return statuses[eateryId];
 }
 
-async function fetchStatuses(eateryId: string, setStatuses: (s: QueueStatus[]) => void) {
-  const expiryTime = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-
+async function fetchStatuses(
+  eateryId: string,
+  replaceForEatery: (id: string, s: ReturnType<typeof buildQueueStatuses>) => void,
+) {
   const { data, error } = await supabase
     .from('queue_reports')
-    .select('*')
+    .select(STATUS_REPORT_COLUMNS)
     .eq('eatery_id', eateryId)
-    .gte('created_at', expiryTime)
+    .gte('created_at', reportWindowStart())
     .order('created_at', { ascending: false });
 
-  if (error || !data?.length) return;
+  if (error) return;
 
-  // Group by stall_id (or eatery-level if null)
-  const grouped: Record<string, typeof data> = {};
-  data.forEach((r) => {
-    const key = r.stall_id ?? eateryId;
-    if (!grouped[key]) grouped[key] = [];
-    grouped[key].push(r);
-  });
-
-  const statuses: QueueStatus[] = Object.entries(grouped).map(([key, reports]) => {
-    const latest = reports[0];
-    const avgMinutes = reports
-      .filter((r) => r.estimated_minutes)
-      .reduce((sum, r, _, arr) => sum + r.estimated_minutes / arr.length, 0);
-
-    return {
-      eatery_id: eateryId,
-      stall_id: latest.stall_id ?? undefined,
-      level: latest.level,
-      estimated_minutes: avgMinutes || undefined,
-      report_count: reports.length,
-      latest_report_at: latest.created_at,
-      freshness_percent: getFreshnessPercent(latest.created_at),
-    };
-  });
-
-  setStatuses(statuses);
+  // Same grouping rule as the map (see buildQueueStatuses), and an empty result
+  // clears this eatery's expired statuses instead of leaving them on screen.
+  replaceForEatery(eateryId, buildQueueStatuses((data ?? []) as StatusReportRow[]));
 }

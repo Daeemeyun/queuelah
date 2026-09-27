@@ -138,12 +138,22 @@ export function HomeScreen() {
     const nearby = withDist.filter(x => x.dist <= NEAR_ME_RADIUS_KM);
     const source = nearby.length >= 5 ? nearby : withDist.slice(0, NEAR_ME_FALLBACK);
 
-    return source.sort((a, b) => {
-      const qa = QUEUE_SORT[a.status?.level ?? 'no_data'];
-      const qb = QUEUE_SORT[b.status?.level ?? 'no_data'];
-      if (qa !== qb) return qa - qb;
-      return a.dist - b.dist;
-    });
+    // Sort on what each row actually DISPLAYS. The old sort used the raw report
+    // level, so every estimated venue fell into one "no data" bucket and a card
+    // showing "~Busy" could rank above one showing "~Quiet" under a header that
+    // promises "shortest queue first".
+    return source
+      .map(x => ({ ...x, display: resolveQueueDisplay(x.eatery, x.status) }))
+      .sort((a, b) => {
+        const qa = QUEUE_SORT[a.display.level];
+        const qb = QUEUE_SORT[b.display.level];
+        if (qa !== qb) return qa - qb;
+        // Same level: a real report outranks an estimate.
+        const la = a.display.source === 'live' ? 0 : 1;
+        const lb = b.display.source === 'live' ? 0 : 1;
+        if (la !== lb) return la - lb;
+        return a.dist - b.dist;
+      });
   }, [eateries, statuses, location]);
 
   const name = isGuest ? null : user?.username;
@@ -198,6 +208,16 @@ export function HomeScreen() {
             <Text style={styles.sectionTitle}>NEAR ME</Text>
             <Text style={styles.sectionSub}>shortest queue first</Text>
           </View>
+
+          {!location.loading && location.usingDefault && (
+            <View style={styles.locationNote}>
+              <Text style={styles.locationNoteText}>
+                {location.granted
+                  ? "Couldn't get your location, so distances are from the city centre."
+                  : 'Location is off, so distances are from the city centre.'}
+              </Text>
+            </View>
+          )}
 
           {loading ? (
             <View style={styles.loadingWrap}>
@@ -259,6 +279,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12,
   },
   sectionSub: { color: Colors.subtext, fontSize: 11, opacity: 0.6 },
+
+  locationNote: {
+    backgroundColor: Colors.card, borderColor: Colors.border, borderWidth: 1,
+    borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, marginBottom: 12,
+  },
+  locationNoteText: { color: Colors.subtext, fontSize: 12 },
 
   loadingWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 20 },
   loadingText: { color: Colors.subtext, fontSize: 13 },
