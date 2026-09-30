@@ -25,10 +25,11 @@ Values you'll reuse:
       `queuelah://auth-callback` and `queuelah://` (and a dev one if you use
       Expo Go: `exp://` is auto-handled). Needed for the Facebook browser flow.
 - [ ] **A2.** Auth → Providers: you'll enable Google, Apple, Facebook below.
-- [ ] **A3.** Auth → **Account linking**: enable **"Link accounts with the same
-      email address"** (a.k.a. automatic identity linking). **This protects your
-      LIVE users** — without it, an existing email/password user who signs in with
-      Google using the same email gets a SECOND account (lost points/history).
+- [ ] **A3.** Account linking: **nothing to enable.** Supabase links same-email
+      identities automatically, and only when the email is verified. (An earlier
+      version of this step described a dashboard toggle; it does not exist.) What
+      you must check instead: Auth → **"Confirm email" is ON**, and **"Allow
+      manual linking" stays OFF** (a separate, unused API).
 - [ ] **A4.** Confirm the `handle_new_user` trigger exists (migration 004) — it
       already auto-creates `user_profiles` rows, so OAuth users get a profile
       automatically. (Verification only; no action.)
@@ -155,8 +156,8 @@ also cover the web/Android path.
 
 ## F. Final verification before announcing
 
-- [ ] Account-linking (A3) is ON — test: sign in with Google using an email that
-      already has an email/password account → same user, points intact.
+- [ ] Automatic linking works — test: sign in with Google using an email that
+      already has a CONFIRMED email/password account → same user, points intact.
 - [ ] Apple sign-in works on a real device / TestFlight (not just simulator).
 - [ ] Google native picker works on iOS (no "nonce mismatch" error).
 - [ ] Facebook browser flow returns to the app (deep link `queuelah://` resolves).
