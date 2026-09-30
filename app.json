@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.queuelah.app",
-      "buildNumber": "9",
+      "buildNumber": "10",
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSUserNotificationsUsageDescription": "QueueLah sends reminders to keep your reporting streak and notifies you when your reports are confirmed.",
